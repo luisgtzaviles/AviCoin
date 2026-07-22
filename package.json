@@ -10,6 +10,7 @@
   "packageManager": "pnpm@11.15.1",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/**/*.test.ts",
     "create-token": "tsx scripts/create-token.ts",
     "create-metadata": "tsx scripts/create-metadata.ts",
     "mint": "tsx scripts/mint.ts",
