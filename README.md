@@ -59,9 +59,9 @@ pnpm mainnet:preflight-plan
 
 La interfaz local autocontenida se inicia con `pnpm phantom:serve` y usa exclusivamente el proveedor inyectado por Phantom. No usa CDN, no solicita secretos y no firma al conectar o cargar. Su flujo manual es:
 
-`Connect → Build → Simulate → Review → Request signature → Send → Verify finalized state`.
+`Connect → Build stable plan → Review → confirmación → Prepare fresh transaction / Simulate → Request signature → segunda confirmación → Send → Verify finalized state`.
 
-Sólo `create-mint` está habilitada en el adaptador. Construye exactamente `createAccount + initializeMint2` con 9 decimales, supply 0, mint authority igual a la wallet de producción y freeze authority `none`. Metadata, ATA, emisión, pool, posición y swaps siguen bloqueados.
+Sólo `create-mint` está habilitada en el adaptador. El plan estable se revisa sin blockhash final; después, `Prepare` conserva el mismo mint propuesto, obtiene un blockhash fresco y simula el mensaje exacto. Se reservan 40 block heights antes de solicitar firma y 20 antes de aceptar o enviar. Un refresh previo al envío invalida la firma anterior; después de `Send` o de un resultado ambiguo está prohibido reconstruir. El mensaje contiene exactamente `createAccount + initializeMint2` con 9 decimales, supply 0, mint authority igual a la wallet de producción y freeze authority `none`. Metadata, ATA, emisión, pool, posición y swaps siguen bloqueados.
 
 `create-token` no asigna freeze authority por defecto. Se puede elegir explícitamente `none`, `payer` o una dirección pública con `--freeze-authority=VALOR`; esta decisión debe revisarse antes de crear el mint.
 

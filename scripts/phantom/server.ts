@@ -9,6 +9,7 @@ import { MAINNET_CONFIG, MAINNET_PRODUCTION_WALLET } from "../../config/index.js
 import { isDirectExecution, reportFailure } from "../lib/entrypoint.js";
 import { mintSnapshot } from "../lib/mainnet-token.js";
 import {
+  CREATE_MINT_CONFIRMATION_TOKEN,
   PhantomCreateMintCoordinator,
   type CreateMintRpc,
   type PhantomRuntimeAuthorization,
@@ -200,7 +201,7 @@ export async function startPhantomServer(options: { readonly port?: number; read
           expectedGenesisHash: auth.expectedGenesisHash,
           productionWallet: auth.productionWallet,
           selectedOperation: auth.operation ?? null,
-          executionEnabled: auth.allowMainnet && auth.operation === "create-mint" && Boolean(auth.confirmationToken && auth.confirmationToken.length >= 16),
+          executionEnabled: auth.allowMainnet && auth.operation === "create-mint" && auth.confirmationToken === CREATE_MINT_CONFIRMATION_TOKEN,
           recovery: await recoveryStore.load(),
         });
         return;
@@ -214,12 +215,17 @@ export async function startPhantomServer(options: { readonly port?: number; read
           return;
         }
         const common = strings(body, ["sessionId", "connectedWallet", "planHash"]);
-        if (url.pathname === "/api/simulate") {
-          json(response, 200, await coordinator.simulate(common as { sessionId: string; connectedWallet: string; planHash: string }));
-          return;
-        }
         if (url.pathname === "/api/review") {
           json(response, 200, await coordinator.review(common as { sessionId: string; connectedWallet: string; planHash: string }));
+          return;
+        }
+        if (url.pathname === "/api/prepare") {
+          const confirmation = strings(body, ["confirmationToken"]);
+          json(response, 200, await coordinator.prepareFreshTransaction({ ...common as { sessionId: string; connectedWallet: string; planHash: string }, confirmationToken: confirmation.confirmationToken as string, explicitlyConfirmed: body.explicitlyConfirmed === true }));
+          return;
+        }
+        if (url.pathname === "/api/fresh-status") {
+          json(response, 200, await coordinator.freshStatus(common as { sessionId: string; connectedWallet: string; planHash: string }));
           return;
         }
         if (url.pathname === "/api/signing-payload") {
@@ -239,6 +245,10 @@ export async function startPhantomServer(options: { readonly port?: number; read
         }
         if (url.pathname === "/api/verify") {
           json(response, 200, await coordinator.verifyFinalized(common as { sessionId: string; connectedWallet: string; planHash: string }));
+          return;
+        }
+        if (url.pathname === "/api/cancel") {
+          json(response, 200, await coordinator.cancel(common as { sessionId: string; connectedWallet: string; planHash: string }));
           return;
         }
         json(response, 404, { error: "Endpoint desconocido." });

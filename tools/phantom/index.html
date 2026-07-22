@@ -12,7 +12,7 @@
     <header>
       <p class="eyebrow">AVICOIN · MAINNET · OPERACIÓN ÚNICA</p>
       <h1>Create mint,<br><span>paso por paso.</span></h1>
-      <p class="lede">La interfaz no firma al conectar ni envía al cargar. Construye un solo mint con 9 decimales, supply 0 y freeze authority none; cada transición exige una acción explícita.</p>
+      <p class="lede">La interfaz no firma al conectar ni envía al cargar. Primero construye y revisa un plan estable; sólo después prepara, simula y firma un mensaje con blockhash fresco.</p>
     </header>
 
     <section class="wallet-card" aria-labelledby="wallet-title">
@@ -31,26 +31,33 @@
         <span class="badge">create-mint only</span>
       </div>
       <div class="workflow" role="group" aria-label="Controles create-mint">
-        <button id="build" type="button" disabled><b>01</b> Build</button>
-        <button id="simulate" type="button" disabled><b>02</b> Simulate</button>
-        <button id="review" type="button" disabled><b>03</b> Review</button>
+        <button id="build" type="button" disabled><b>01</b> Build stable plan</button>
+        <button id="review" type="button" disabled><b>02</b> Review stable plan</button>
       </div>
       <div class="confirmation-panel">
         <label for="confirmation-token">Token efímero de confirmación</label>
-        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="No se guarda en el navegador">
-        <label class="check"><input id="signature-confirm" type="checkbox"> Revisé operación, red, wallet, cuentas, rentas, fees y hashes.</label>
-        <button id="request-signature" type="button" disabled><b>04</b> Request signature</button>
+        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="CONFIRMO-MAINNET-RECURSO-PERMANENTE">
+        <label class="check"><input id="signature-confirm" type="checkbox"> Confirmo Solana Mainnet y que create-mint creará un recurso irreversible; revisé wallet, mint, programas, instrucciones, renta y stable plan hash.</label>
+        <button id="prepare" type="button" disabled><b>03</b> Prepare fresh transaction + simulate</button>
+        <p id="validity" class="gate">Todavía no existe un mensaje transaccional ni un blockhash final.</p>
+        <button id="request-signature" type="button" disabled><b>04</b> Request immediate signature</button>
         <label class="check"><input id="send-confirm" type="checkbox"> Confirmo nuevamente el envío único del mismo mensaje firmado.</label>
         <div class="workflow final-actions">
-          <button id="send" type="button" disabled><b>05</b> Send</button>
+          <button id="send" type="button" disabled><b>05</b> Send immediately</button>
           <button id="verify" type="button" disabled><b>06</b> Verify finalized state</button>
+          <button id="cancel" type="button" disabled>Cancel ephemeral session</button>
         </div>
       </div>
     </section>
 
     <section class="plan-section" aria-labelledby="plan-title">
-      <div class="section-heading"><div><p class="label">Revisión previa</p><h2 id="plan-title">Plan y mensaje exactos</h2></div></div>
+      <div class="section-heading"><div><p class="label">Revisión previa</p><h2 id="plan-title">Plan estable, sin blockhash final</h2></div></div>
       <dl id="plan" class="plan"><div><dt>Estado</dt><dd>Ejecuta Build para generar una sesión efímera.</dd></div></dl>
+    </section>
+
+    <section class="plan-section" aria-labelledby="fresh-title">
+      <div class="section-heading"><div><p class="label">Ventana efímera</p><h2 id="fresh-title">Mensaje exacto recién preparado</h2></div></div>
+      <dl id="fresh-transaction" class="plan"><div><dt>Estado</dt><dd>Disponible después de Review y Prepare.</dd></div></dl>
     </section>
 
     <section class="blocked" aria-labelledby="blocked-title">

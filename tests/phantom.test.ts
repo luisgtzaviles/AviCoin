@@ -25,6 +25,24 @@ describe("frontera Phantom no custodial", () => {
     assert.equal(/signAndSendTransaction|provider\.sendTransaction/u.test(source), false);
     assert.match(source, /if \(typeof window !== "undefined"/);
   });
+  it("la UI revisa el plan antes de preparar el blockhash y separa los dos paneles", async () => {
+    const html = await readFile("tools/phantom/index.html", "utf8");
+    const build = html.indexOf('id="build"');
+    const review = html.indexOf('id="review"');
+    const prepare = html.indexOf('id="prepare"');
+    const requestSignature = html.indexOf('id="request-signature"');
+    assert.ok(build > 0 && build < review && review < prepare && prepare < requestSignature);
+    assert.match(html, /Plan estable, sin blockhash final/);
+    assert.match(html, /Mensaje exacto recién preparado/);
+    assert.equal(/id="simulate"/u.test(html), false);
+  });
+  it("el servidor expone Prepare y vigencia sin conservar el endpoint Simulate anterior", async () => {
+    const source = await readFile("scripts/phantom/server.ts", "utf8");
+    assert.match(source, /"\/api\/prepare"/);
+    assert.match(source, /"\/api\/fresh-status"/);
+    assert.equal(/"\/api\/simulate"/u.test(source), false);
+    assert.match(source, /maxRetries: 0/);
+  });
   it("el diagnóstico local sólo expone connect y no contiene primitivas transaccionales", async () => {
     const diagnostic = await import(pathToFileURL(resolve("tools/phantom/diagnostic.js")).href) as {
       PRODUCTION_WALLET: string;

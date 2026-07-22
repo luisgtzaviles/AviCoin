@@ -13,9 +13,11 @@ Estado: **adaptador Phantom `create-mint` implementado y validado; ningún recur
 - El gate del pool admite `retained_temporarily` y la política futura `revoked`, pero exige invariantes on-chain exactas y rechaza cualquier política desconocida.
 - `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones y firmas: 0.
 - Servidor limitado a `127.0.0.1`, UI autocontenida sin CDN, CSP local y proveedor oficial `window.phantom.solana`.
-- Flujo separado `Build → Simulate → Review → Request signature → Send → Verify finalized state`, con token efímero y dos confirmaciones explícitas.
+- Flujo separado `Build stable plan → Review → confirmación → Prepare fresh transaction / Simulate → Request signature → Send → Verify finalized state`, con token efímero y dos confirmaciones explícitas.
 - Keypair del mint generado sólo en memoria; únicamente su dirección pública y hashes pueden conservarse para resolver un estado ambiguo.
-- El mensaje firmable no se entrega antes de un dry-run vigente. El servidor verifica las firmas de Phantom y del mint contra el mismo mensaje, blockhash y plan antes de permitir un único envío.
+- `Build` no solicita blockhash: el stable plan hash cubre la semántica completa y puede revisarse sin expiración. `Prepare` conserva el mismo mint, obtiene el blockhash más reciente, calcula el fee exacto y simula el mensaje final.
+- El mensaje firmable no se entrega antes de una simulación fresca. Se exigen 40 block heights para solicitar firma y 20 para aceptar/enviar; el servidor verifica las firmas de Phantom y del mint contra el mismo mensaje, blockhash y plan.
+- Un refresh sólo está permitido antes de `send_locked`: invalida firma y mensaje anteriores, pero nunca regenera el mint. Tras contactar el RPC o quedar ambiguo se bloquean refresh, reenvío y mint sustituto.
 
 ## Preflight read-only y costos observados
 

@@ -6,27 +6,33 @@ import {
   SystemProgram,
   TransactionMessage,
   VersionedTransaction,
+  type TransactionInstruction,
   type VersionedMessage,
 } from "@solana/web3.js";
 import { MAINNET_CONFIG, MAINNET_PRODUCTION_WALLET } from "../../config/index.js";
 import type { MintSnapshot } from "./mainnet-token.js";
 import { assertMintSnapshot } from "./mainnet-token.js";
 
-export const CREATE_MINT_DRY_RUN_TTL_MS = 10 * 60 * 1_000;
+export const CREATE_MINT_SIGNATURE_BLOCK_HEIGHT_MARGIN = 40;
+export const CREATE_MINT_SEND_BLOCK_HEIGHT_MARGIN = 20;
+export const CREATE_MINT_APPROXIMATE_FEE_LAMPORTS = 10_000n;
+export const CREATE_MINT_CONFIRMATION_TOKEN = "CONFIRMO-MAINNET-RECURSO-PERMANENTE";
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 const ZERO_SIGNATURE = new Uint8Array(64);
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 export type CreateMintSessionStatus =
-  | "built"
+  | "plan_built"
+  | "plan_reviewed"
+  | "fresh_message_prepared"
   | "simulated"
-  | "reviewed"
   | "signature_requested"
   | "signed"
-  | "sending"
+  | "send_locked"
   | "sent"
   | "finalized"
-  | "ambiguous";
+  | "ambiguous"
+  | "cancelled";
 
 export interface PhantomRuntimeAuthorization {
   readonly network: string;
@@ -81,6 +87,7 @@ export interface CreateMintPlanSummary {
   readonly supply: "0";
   readonly mintAuthority: string;
   readonly freezeAuthority: null;
+  readonly mintAccountSpace: number;
   readonly instructions: readonly ["system:createAccount", "spl-token:initializeMint2"];
   readonly programs: readonly string[];
   readonly writableAccounts: readonly string[];
@@ -89,34 +96,69 @@ export interface CreateMintPlanSummary {
   readonly expectedBalanceChangeLamports: string;
   readonly rentLamports: string;
   readonly estimatedFeeLamports: string;
-  readonly messageHash: string;
   readonly planHash: string;
+  readonly stopConditions: readonly string[];
+}
+
+export interface FreshTransactionSummary {
+  readonly stablePlanHash: string;
+  readonly wallet: string;
+  readonly mintAddress: string;
   readonly blockhash: string;
   readonly lastValidBlockHeight: number;
-  readonly stopConditions: readonly string[];
+  readonly currentBlockHeight: number;
+  readonly remainingBlockHeights: number;
+  readonly signatureMarginRequired: number;
+  readonly sendMarginRequired: number;
+  readonly canRequestSignature: boolean;
+  readonly canSend: boolean;
+  readonly feeLamports: string;
+  readonly balanceBeforeLamports: string;
+  readonly expectedBalanceAfterLamports: string;
+  readonly messageHash: string;
+  readonly preparedAt: string;
+  readonly preparedAtMonotonicMs: number;
+  readonly simulation: { readonly logs: readonly string[]; readonly unitsConsumed: number | null };
 }
 
 export interface CreateMintPublicSession {
   readonly sessionId: string;
   readonly status: CreateMintSessionStatus;
   readonly plan: CreateMintPlanSummary;
-  readonly simulatedAt: string | null;
-  readonly dryRunValidUntil: string | null;
-  readonly simulation: { readonly logs: readonly string[]; readonly unitsConsumed: number | null } | null;
+  readonly freshTransaction: FreshTransactionSummary | null;
+  readonly refreshCount: number;
+  readonly signatureInvalidated: boolean;
   readonly signature: string | null;
   readonly expectedSignature: string | null;
+}
+
+interface FreshTransactionReceipt {
+  readonly stablePlanHash: string;
+  readonly wallet: string;
+  readonly mintAddress: string;
+  readonly transaction: VersionedTransaction;
+  signedTransaction: VersionedTransaction | null;
+  readonly blockhash: string;
+  readonly lastValidBlockHeight: number;
+  currentBlockHeight: number;
+  readonly feeLamports: bigint;
+  readonly balanceBeforeLamports: bigint;
+  readonly expectedBalanceAfterLamports: bigint;
+  readonly messageHash: string;
+  readonly preparedAt: Date;
+  readonly preparedAtMonotonicMs: number;
+  readonly simulation: { readonly logs: readonly string[]; readonly unitsConsumed: number | null };
 }
 
 interface PrivateSession {
   readonly id: string;
   status: CreateMintSessionStatus;
   readonly mint: Keypair;
-  readonly transaction: VersionedTransaction;
-  signedTransaction: VersionedTransaction | null;
   readonly plan: CreateMintPlanSummary;
   readonly configFingerprint: string;
-  simulatedAt: Date | null;
-  simulation: { readonly logs: readonly string[]; readonly unitsConsumed: number | null } | null;
+  fresh: FreshTransactionReceipt | null;
+  refreshCount: number;
+  signatureInvalidated: boolean;
   signature: string | null;
   expectedSignature: string | null;
   sendInFlight: boolean;
@@ -176,20 +218,52 @@ function assertRuntimeShape(runtime: PhantomRuntimeAuthorization, connectedWalle
 function assertExecutionAuthorization(runtime: PhantomRuntimeAuthorization, token: string): void {
   if (!runtime.allowMainnet) throw new Error("Envío bloqueado: ALLOW_MAINNET debe ser true sólo durante la sesión deliberada.");
   if (runtime.operation !== "create-mint") throw new Error("AVICOIN_MAINNET_OPERATION debe ser exactamente create-mint.");
-  if (!runtime.confirmationToken || runtime.confirmationToken.length < 16 || token !== runtime.confirmationToken) {
+  if (runtime.confirmationToken !== CREATE_MINT_CONFIRMATION_TOKEN || token !== CREATE_MINT_CONFIRMATION_TOKEN) {
     throw new Error("Token efímero de confirmación inválido.");
   }
 }
 
+function mintInstructions(wallet: PublicKey, mint: PublicKey, rentLamports: bigint): TransactionInstruction[] {
+  const rent = Number(rentLamports);
+  if (!Number.isSafeInteger(rent) || BigInt(rent) !== rentLamports) throw new Error("La renta del mint excede el rango numérico seguro.");
+  return [
+    SystemProgram.createAccount({ fromPubkey: wallet, newAccountPubkey: mint, lamports: rent, space: MINT_SIZE, programId: TOKEN_PROGRAM_ID }),
+    createInitializeMint2Instruction(mint, 9, wallet, null, TOKEN_PROGRAM_ID),
+  ];
+}
+
+function freshSummary(fresh: FreshTransactionReceipt): FreshTransactionSummary {
+  const remaining = fresh.lastValidBlockHeight - fresh.currentBlockHeight;
+  return {
+    stablePlanHash: fresh.stablePlanHash,
+    wallet: fresh.wallet,
+    mintAddress: fresh.mintAddress,
+    blockhash: fresh.blockhash,
+    lastValidBlockHeight: fresh.lastValidBlockHeight,
+    currentBlockHeight: fresh.currentBlockHeight,
+    remainingBlockHeights: remaining,
+    signatureMarginRequired: CREATE_MINT_SIGNATURE_BLOCK_HEIGHT_MARGIN,
+    sendMarginRequired: CREATE_MINT_SEND_BLOCK_HEIGHT_MARGIN,
+    canRequestSignature: remaining >= CREATE_MINT_SIGNATURE_BLOCK_HEIGHT_MARGIN,
+    canSend: remaining >= CREATE_MINT_SEND_BLOCK_HEIGHT_MARGIN,
+    feeLamports: fresh.feeLamports.toString(),
+    balanceBeforeLamports: fresh.balanceBeforeLamports.toString(),
+    expectedBalanceAfterLamports: fresh.expectedBalanceAfterLamports.toString(),
+    messageHash: fresh.messageHash,
+    preparedAt: fresh.preparedAt.toISOString(),
+    preparedAtMonotonicMs: fresh.preparedAtMonotonicMs,
+    simulation: fresh.simulation,
+  };
+}
+
 function publicSession(session: PrivateSession): CreateMintPublicSession {
-  const validUntil = session.simulatedAt ? new Date(session.simulatedAt.getTime() + CREATE_MINT_DRY_RUN_TTL_MS) : null;
   return {
     sessionId: session.id,
     status: session.status,
     plan: session.plan,
-    simulatedAt: session.simulatedAt?.toISOString() ?? null,
-    dryRunValidUntil: validUntil?.toISOString() ?? null,
-    simulation: session.simulation,
+    freshTransaction: session.fresh ? freshSummary(session.fresh) : null,
+    refreshCount: session.refreshCount,
+    signatureInvalidated: session.signatureInvalidated,
     signature: session.signature,
     expectedSignature: session.expectedSignature,
   };
@@ -198,6 +272,12 @@ function publicSession(session: PrivateSession): CreateMintPublicSession {
 function verifyEd25519Signature(publicKey: PublicKey, message: Uint8Array, signature: Uint8Array): boolean {
   const key = createPublicKey({ key: Buffer.concat([ED25519_SPKI_PREFIX, publicKey.toBuffer()]), format: "der", type: "spki" });
   return verify(null, message, key, signature);
+}
+
+function clearKeypairSecret(keypair: Keypair): void {
+  const internal = (keypair as unknown as { _keypair?: { secretKey?: Uint8Array } })._keypair?.secretKey;
+  if (internal) internal.fill(0);
+  else keypair.secretKey.fill(0);
 }
 
 export class PhantomCreateMintCoordinator {
@@ -211,6 +291,7 @@ export class PhantomCreateMintCoordinator {
     private readonly now: () => Date = () => new Date(),
     private readonly createMintKeypair: () => Keypair = () => Keypair.generate(),
     private readonly onFinalized: (mintAddress: string) => Promise<void> = async () => undefined,
+    private readonly monotonicNow: () => number = () => performance.now(),
   ) {}
 
   async build(input: { readonly connectedWallet: string; readonly operation: string }): Promise<CreateMintPublicSession> {
@@ -226,23 +307,11 @@ export class PhantomCreateMintCoordinator {
     const wallet = new PublicKey(input.connectedWallet);
     const mint = this.createMintKeypair();
     if (await this.rpc.getAccountOwner(mint.publicKey)) throw new Error("La dirección efímera del mint ya existe; sesión detenida.");
-    const [balance, rent, lifetime] = await Promise.all([
+    const [balance, rent] = await Promise.all([
       this.rpc.getBalance(wallet),
       this.rpc.getMinimumBalanceForRentExemption(MINT_SIZE),
-      this.rpc.getLatestBlockhash(),
     ]);
-    const rentLamports = Number(rent);
-    if (!Number.isSafeInteger(rentLamports) || BigInt(rentLamports) !== rent) throw new Error("La renta del mint excede el rango numérico seguro.");
-    const instructions = [
-      SystemProgram.createAccount({ fromPubkey: wallet, newAccountPubkey: mint.publicKey, lamports: rentLamports, space: MINT_SIZE, programId: TOKEN_PROGRAM_ID }),
-      createInitializeMint2Instruction(mint.publicKey, 9, wallet, null, TOKEN_PROGRAM_ID),
-    ];
-    const message = new TransactionMessage({ payerKey: wallet, recentBlockhash: lifetime.blockhash, instructions }).compileToV0Message();
-    const fee = await this.rpc.getFeeForMessage(message);
-    if (balance < rent + fee) throw new Error("El balance SOL no cubre renta y fee estimado de create-mint.");
-    const transaction = new VersionedTransaction(message);
-    transaction.sign([mint]);
-    const messageHash = sha256(message.serialize());
+    if (balance < rent + CREATE_MINT_APPROXIMATE_FEE_LAMPORTS) throw new Error("El balance SOL no cubre renta y fee aproximado de create-mint.");
     const basePlan = {
       operation: "create-mint" as const,
       network: "mainnet-beta" as const,
@@ -254,58 +323,115 @@ export class PhantomCreateMintCoordinator {
       supply: "0" as const,
       mintAuthority: wallet.toBase58(),
       freezeAuthority: null,
+      mintAccountSpace: MINT_SIZE,
       instructions: ["system:createAccount", "spl-token:initializeMint2"] as const,
       programs: [SystemProgram.programId.toBase58(), TOKEN_PROGRAM_ID.toBase58()],
       writableAccounts: [wallet.toBase58(), mint.publicKey.toBase58()],
       signerAccounts: [wallet.toBase58(), mint.publicKey.toBase58()],
       balanceBeforeLamports: balance.toString(),
-      expectedBalanceChangeLamports: (-(rent + fee)).toString(),
+      expectedBalanceChangeLamports: (-(rent + CREATE_MINT_APPROXIMATE_FEE_LAMPORTS)).toString(),
       rentLamports: rent.toString(),
-      estimatedFeeLamports: fee.toString(),
-      messageHash,
-      blockhash: lifetime.blockhash,
-      lastValidBlockHeight: lifetime.lastValidBlockHeight,
+      estimatedFeeLamports: CREATE_MINT_APPROXIMATE_FEE_LAMPORTS.toString(),
       stopConditions: [
-        "wallet, network, genesis, RPC, operation or plan changed",
-        "dry-run expired or blockhash expired",
+        "wallet, network, genesis, RPC, operation or stable plan changed",
         "mint address already exists",
         "ALLOW_MAINNET is false or confirmation token is invalid",
-        "signature does not match the exact message",
-        "send outcome is ambiguous",
+        "fresh blockhash lacks the required signature or send margin",
+        "signature does not match the exact fresh message",
+        "send started or its outcome is ambiguous",
       ],
     };
     const planHash = sha256(stable(basePlan));
-    const session: PrivateSession = {
+    this.session = {
       id: randomUUID(),
-      status: "built",
+      status: "plan_built",
       mint,
-      transaction,
-      signedTransaction: null,
       plan: { ...basePlan, planHash },
       configFingerprint: runtimeFingerprint(runtime),
-      simulatedAt: null,
-      simulation: null,
+      fresh: null,
+      refreshCount: 0,
+      signatureInvalidated: false,
       signature: null,
       expectedSignature: null,
       sendInFlight: false,
     };
-    this.session = session;
-    return publicSession(session);
-  }
-
-  async simulate(input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string }): Promise<CreateMintPublicSession> {
-    const session = await this.assertCurrent(input, ["built"]);
-    const result = await this.rpc.simulate(session.transaction);
-    session.status = "simulated";
-    session.simulatedAt = this.now();
-    session.simulation = result;
-    return publicSession(session);
+    return publicSession(this.session);
   }
 
   async review(input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string }): Promise<CreateMintPublicSession> {
-    const session = await this.assertCurrent(input, ["simulated"]);
-    this.assertDryRunFresh(session);
-    session.status = "reviewed";
+    const session = await this.assertCurrent(input, ["plan_built"]);
+    session.status = "plan_reviewed";
+    return publicSession(session);
+  }
+
+  async prepareFreshTransaction(input: {
+    readonly sessionId: string;
+    readonly connectedWallet: string;
+    readonly planHash: string;
+    readonly confirmationToken: string;
+    readonly explicitlyConfirmed: boolean;
+  }): Promise<CreateMintPublicSession> {
+    const session = await this.assertCurrent(input, ["plan_reviewed", "simulated", "signature_requested", "signed"]);
+    if (!input.explicitlyConfirmed) throw new Error("Debes confirmar Mainnet y la creación irreversible antes de preparar el mensaje fresco.");
+    assertExecutionAuthorization(this.runtime(), input.confirmationToken);
+    const refreshing = session.status !== "plan_reviewed";
+    if (refreshing) {
+      session.refreshCount += 1;
+      session.signatureInvalidated = session.status === "signature_requested" || session.status === "signed" || session.expectedSignature !== null;
+    }
+    session.fresh = null;
+    session.signature = null;
+    session.expectedSignature = null;
+    try {
+      const wallet = new PublicKey(session.plan.wallet);
+      const rent = BigInt(session.plan.rentLamports);
+      const [balance, lifetime] = await Promise.all([
+        this.rpc.getBalance(wallet),
+        this.rpc.getLatestBlockhash(),
+      ]);
+      const message = new TransactionMessage({
+        payerKey: wallet,
+        recentBlockhash: lifetime.blockhash,
+        instructions: mintInstructions(wallet, session.mint.publicKey, rent),
+      }).compileToV0Message();
+      const fee = await this.rpc.getFeeForMessage(message);
+      if (balance < rent + fee) throw new Error("El balance SOL no cubre renta y fee exacto del mensaje fresco.");
+      const transaction = new VersionedTransaction(message);
+      transaction.sign([session.mint]);
+      const messageHash = sha256(message.serialize());
+      session.status = "fresh_message_prepared";
+      const simulation = await this.rpc.simulate(transaction);
+      const blockHeight = await this.rpc.getBlockHeight();
+      session.fresh = {
+        stablePlanHash: session.plan.planHash,
+        wallet: session.plan.wallet,
+        mintAddress: session.plan.mintAddress,
+        transaction,
+        signedTransaction: null,
+        blockhash: lifetime.blockhash,
+        lastValidBlockHeight: lifetime.lastValidBlockHeight,
+        currentBlockHeight: blockHeight,
+        feeLamports: fee,
+        balanceBeforeLamports: balance,
+        expectedBalanceAfterLamports: balance - rent - fee,
+        messageHash,
+        preparedAt: this.now(),
+        preparedAtMonotonicMs: this.monotonicNow(),
+        simulation,
+      };
+      session.status = "simulated";
+      return publicSession(session);
+    } catch (error) {
+      session.fresh = null;
+      session.status = "plan_reviewed";
+      throw error;
+    }
+  }
+
+  async freshStatus(input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string }): Promise<CreateMintPublicSession> {
+    const session = await this.assertCurrent(input, ["simulated", "signature_requested", "signed"]);
+    if (!session.fresh) throw new Error("No existe un mensaje fresco preparado.");
+    session.fresh.currentBlockHeight = await this.rpc.getBlockHeight();
     return publicSession(session);
   }
 
@@ -316,16 +442,16 @@ export class PhantomCreateMintCoordinator {
     readonly confirmationToken: string;
     readonly explicitlyConfirmed: boolean;
   }): Promise<{ readonly transactionBase64: string; readonly messageHash: string; readonly planHash: string }> {
-    const session = await this.assertCurrent(input, ["reviewed"]);
+    const session = await this.assertCurrent(input, ["simulated"]);
     if (!input.explicitlyConfirmed) throw new Error("Debes confirmar explícitamente la revisión antes de solicitar firma.");
-    this.assertDryRunFresh(session);
-    const runtime = this.runtime();
-    assertExecutionAuthorization(runtime, input.confirmationToken);
-    await this.assertBlockhashFresh(session);
+    assertExecutionAuthorization(this.runtime(), input.confirmationToken);
+    await this.assertFreshMargin(session, CREATE_MINT_SIGNATURE_BLOCK_HEIGHT_MARGIN, "solicitar firma", true);
+    const fresh = session.fresh;
+    if (!fresh) throw new Error("El mensaje fresco fue invalidado; prepara uno nuevo.");
     session.status = "signature_requested";
     return {
-      transactionBase64: Buffer.from(session.transaction.serialize()).toString("base64"),
-      messageHash: session.plan.messageHash,
+      transactionBase64: Buffer.from(fresh.transaction.serialize()).toString("base64"),
+      messageHash: fresh.messageHash,
       planHash: session.plan.planHash,
     };
   }
@@ -338,26 +464,34 @@ export class PhantomCreateMintCoordinator {
     readonly transactionBase64: string;
   }): Promise<CreateMintPublicSession> {
     const session = await this.assertCurrent(input, ["signature_requested"]);
-    if (input.messageHash !== session.plan.messageHash) throw new Error("El hash del mensaje firmado no coincide con el construido.");
+    const fresh = session.fresh;
+    if (!fresh) throw new Error("El mensaje fresco fue invalidado.");
+    if (input.messageHash !== fresh.messageHash) throw new Error("El hash del mensaje firmado no coincide con el mensaje fresco.");
     const signed = VersionedTransaction.deserialize(Buffer.from(input.transactionBase64, "base64"));
     const signedMessage = signed.message.serialize();
-    if (sha256(signedMessage) !== session.plan.messageHash) throw new Error("Phantom devolvió una transacción con un mensaje distinto.");
+    if (sha256(signedMessage) !== fresh.messageHash || signed.message.recentBlockhash !== fresh.blockhash) {
+      throw new Error("Phantom devolvió una transacción con un mensaje o blockhash distinto.");
+    }
     const keys = signed.message.staticAccountKeys;
-    const walletIndex = keys.findIndex((key) => key.equals(new PublicKey(session.plan.wallet)));
+    const wallet = new PublicKey(session.plan.wallet);
+    const walletIndex = keys.findIndex((key) => key.equals(wallet));
     const mintIndex = keys.findIndex((key) => key.equals(session.mint.publicKey));
-    if (walletIndex < 0 || mintIndex < 0 || walletIndex >= signed.message.header.numRequiredSignatures || mintIndex >= signed.message.header.numRequiredSignatures) {
-      throw new Error("Los signers del mensaje no coinciden con el plan create-mint.");
+    if (!keys[0]?.equals(wallet) || walletIndex < 0 || mintIndex < 0 || walletIndex >= signed.message.header.numRequiredSignatures || mintIndex >= signed.message.header.numRequiredSignatures) {
+      throw new Error("Payer o signers no coinciden con el plan create-mint.");
     }
     const walletSignature = signed.signatures[walletIndex];
     const mintSignature = signed.signatures[mintIndex];
-    const originalMintSignature = session.transaction.signatures[mintIndex];
-    if (!walletSignature || Buffer.from(walletSignature).equals(Buffer.from(ZERO_SIGNATURE)) || !verifyEd25519Signature(keys[walletIndex] as PublicKey, signedMessage, walletSignature)) {
-      throw new Error("La firma Phantom no es válida para el mensaje exacto.");
+    const originalMintSignature = fresh.transaction.signatures[mintIndex];
+    if (!walletSignature || Buffer.from(walletSignature).equals(Buffer.from(ZERO_SIGNATURE)) || !verifyEd25519Signature(wallet, signedMessage, walletSignature)) {
+      throw new Error("La firma Phantom no es válida para el mensaje fresco exacto.");
     }
     if (!mintSignature || !originalMintSignature || !Buffer.from(mintSignature).equals(Buffer.from(originalMintSignature)) || !verifyEd25519Signature(session.mint.publicKey, signedMessage, mintSignature)) {
       throw new Error("La firma efímera del mint fue alterada.");
     }
-    session.signedTransaction = signed;
+    await this.assertFreshMargin(session, CREATE_MINT_SEND_BLOCK_HEIGHT_MARGIN, "aceptar la firma", true);
+    const validFresh = session.fresh;
+    if (!validFresh) throw new Error("La firma llegó demasiado tarde y fue invalidada; prepara un mensaje nuevo.");
+    validFresh.signedTransaction = signed;
     session.expectedSignature = solanaTransactionSignature(signed);
     session.status = "signed";
     return publicSession(session);
@@ -374,16 +508,16 @@ export class PhantomCreateMintCoordinator {
     if (!input.explicitlyConfirmed) throw new Error("Debes confirmar nuevamente antes de enviar.");
     if (session.sendInFlight) throw new Error("La transacción ya está enviándose; no se duplicará.");
     assertExecutionAuthorization(this.runtime(), input.confirmationToken);
-    this.assertDryRunFresh(session);
-    await this.assertBlockhashFresh(session);
-    if (!session.signedTransaction) throw new Error("Falta la transacción firmada por Phantom.");
+    await this.assertFreshMargin(session, CREATE_MINT_SEND_BLOCK_HEIGHT_MARGIN, "enviar", true);
+    const fresh = session.fresh;
+    if (!fresh?.signedTransaction) throw new Error("Falta la transacción firmada por Phantom.");
     await this.assertExpectedState();
     if (await this.rpc.getAccountOwner(session.mint.publicKey)) throw new Error("La dirección esperada del mint ya existe; no se enviará otra creación.");
     session.sendInFlight = true;
-    session.status = "sending";
+    session.status = "send_locked";
     await this.saveRecovery(session, "sending");
     try {
-      const returnedSignature = await this.rpc.sendRawTransaction(session.signedTransaction.serialize());
+      const returnedSignature = await this.rpc.sendRawTransaction(fresh.signedTransaction.serialize());
       if (returnedSignature !== session.expectedSignature) throw new Error("El RPC devolvió una firma distinta de la transacción firmada.");
       session.signature = returnedSignature;
       session.status = "sent";
@@ -393,7 +527,7 @@ export class PhantomCreateMintCoordinator {
       session.signature = session.expectedSignature;
       session.status = "ambiguous";
       await this.saveRecovery(session, "ambiguous");
-      throw new Error("El resultado del envío es ambiguo. No reintentes ni construyas otro mint; consulta la firma y la dirección esperada.", { cause: error });
+      throw new Error("El resultado del envío es ambiguo. No refresques, reintentes ni construyas otro mint; consulta la firma y la dirección esperada.", { cause: error });
     } finally {
       session.sendInFlight = false;
     }
@@ -401,13 +535,14 @@ export class PhantomCreateMintCoordinator {
 
   async verifyFinalized(input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string }): Promise<CreateMintPublicSession & { readonly resolution?: { readonly signatureStatus: string | null; readonly accountExists: boolean } }> {
     const session = await this.assertCurrent(input, ["sent", "ambiguous"]);
-    if (!session.signature) {
+    const fresh = session.fresh;
+    if (!fresh || !session.signature) {
       session.status = "ambiguous";
       await this.saveRecovery(session, "ambiguous");
       return { ...publicSession(session), resolution: { signatureStatus: null, accountExists: (await this.rpc.getAccountOwner(session.mint.publicKey)) !== null } };
     }
     try {
-      await this.rpc.confirmFinalized({ signature: session.signature, blockhash: session.plan.blockhash, lastValidBlockHeight: session.plan.lastValidBlockHeight });
+      await this.rpc.confirmFinalized({ signature: session.signature, blockhash: fresh.blockhash, lastValidBlockHeight: fresh.lastValidBlockHeight });
       const mint = await this.rpc.readMint(session.mint.publicKey);
       if (mint.owner !== TOKEN_PROGRAM_ID.toBase58()) throw new Error("La cuenta creada no pertenece al SPL Token Program.");
       assertMintSnapshot(mint.snapshot, { authority: session.plan.wallet, supply: 0n });
@@ -415,7 +550,7 @@ export class PhantomCreateMintCoordinator {
       session.status = "finalized";
       await this.saveRecovery(session, "finalized");
       return publicSession(session);
-    } catch (error) {
+    } catch {
       session.status = "ambiguous";
       const resolution = {
         signatureStatus: await this.rpc.getSignatureStatus(session.signature),
@@ -426,6 +561,16 @@ export class PhantomCreateMintCoordinator {
     }
   }
 
+  async cancel(input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string }): Promise<CreateMintPublicSession> {
+    const session = await this.assertCurrent(input, ["plan_built", "plan_reviewed", "fresh_message_prepared", "simulated", "signature_requested", "signed"]);
+    session.fresh = null;
+    session.signature = null;
+    session.expectedSignature = null;
+    clearKeypairSecret(session.mint);
+    session.status = "cancelled";
+    return publicSession(session);
+  }
+
   private async assertCurrent(
     input: { readonly sessionId: string; readonly connectedWallet: string; readonly planHash: string },
     allowedStatuses: readonly CreateMintSessionStatus[],
@@ -433,37 +578,51 @@ export class PhantomCreateMintCoordinator {
     const session = this.session;
     if (!session || session.id !== input.sessionId) throw new Error("Sesión create-mint desconocida o expirada.");
     if (!allowedStatuses.includes(session.status)) throw new Error(`Transición inválida desde ${session.status}.`);
-    if (input.planHash !== session.plan.planHash) throw new Error("El plan cambió; la autorización anterior queda invalidada.");
+    if (input.planHash !== session.plan.planHash) throw new Error("El plan estable cambió; la autorización anterior queda invalidada.");
     const runtime = this.runtime();
     assertRuntimeShape(runtime, input.connectedWallet);
-    if (runtimeFingerprint(runtime) !== session.configFingerprint) throw new Error("La configuración cambió desde Build; reconstruye en una sesión nueva.");
+    if (runtimeFingerprint(runtime) !== session.configFingerprint) throw new Error("La configuración cambió desde Build; cancela la sesión.");
     await this.assertExpectedState();
     if (await this.rpc.getGenesisHash() !== runtime.expectedGenesisHash) throw new Error("El genesis hash real cambió o no corresponde a Mainnet.");
-    if (session.status !== "sent" && session.status !== "ambiguous" && await this.rpc.getAccountOwner(session.mint.publicKey)) {
+    if (!(["sent", "ambiguous", "finalized"] as CreateMintSessionStatus[]).includes(session.status) && await this.rpc.getAccountOwner(session.mint.publicKey)) {
       throw new Error("La dirección esperada del mint apareció antes del envío; sesión detenida.");
     }
     return session;
   }
 
-  private assertDryRunFresh(session: PrivateSession): void {
-    if (!session.simulatedAt || this.now().getTime() - session.simulatedAt.getTime() > CREATE_MINT_DRY_RUN_TTL_MS) {
-      throw new Error("El dry-run expiró; no se puede firmar ni enviar.");
+  private invalidateFresh(session: PrivateSession): void {
+    session.signatureInvalidated = session.status === "signature_requested" || session.status === "signed" || session.expectedSignature !== null;
+    session.fresh = null;
+    session.signature = null;
+    session.expectedSignature = null;
+    session.status = "plan_reviewed";
+  }
+
+  private async assertFreshMargin(session: PrivateSession, required: number, action: string, invalidate: boolean): Promise<void> {
+    const fresh = session.fresh;
+    if (!fresh) throw new Error("No existe un mensaje fresco preparado.");
+    if (fresh.stablePlanHash !== session.plan.planHash || fresh.wallet !== session.plan.wallet || fresh.mintAddress !== session.plan.mintAddress) {
+      throw new Error("El recibo fresco no corresponde al plan estable, wallet y mint revisados.");
+    }
+    fresh.currentBlockHeight = await this.rpc.getBlockHeight();
+    const remaining = fresh.lastValidBlockHeight - fresh.currentBlockHeight;
+    if (remaining < required) {
+      if (invalidate) this.invalidateFresh(session);
+      throw new Error(`Blockhash demasiado cercano a expirar para ${action}: quedan ${remaining} block heights y se requieren ${required}. Prepara un mensaje fresco con el mismo mint.`);
     }
   }
 
-  private async assertBlockhashFresh(session: PrivateSession): Promise<void> {
-    if (await this.rpc.getBlockHeight() > session.plan.lastValidBlockHeight) throw new Error("El blockhash expiró; envío rechazado.");
-  }
-
   private async saveRecovery(session: PrivateSession, status: PublicRecoveryRecord["status"]): Promise<void> {
+    const fresh = session.fresh;
+    if (!fresh) throw new Error("No existe mensaje fresco para registrar recovery público.");
     await this.recoveryStore.save({
       operation: "create-mint",
       status,
       mintAddress: session.plan.mintAddress,
-      messageHash: session.plan.messageHash,
+      messageHash: fresh.messageHash,
       planHash: session.plan.planHash,
-      blockhash: session.plan.blockhash,
-      lastValidBlockHeight: session.plan.lastValidBlockHeight,
+      blockhash: fresh.blockhash,
+      lastValidBlockHeight: fresh.lastValidBlockHeight,
       signature: session.signature ?? session.expectedSignature,
       updatedAt: this.now().toISOString(),
     });
