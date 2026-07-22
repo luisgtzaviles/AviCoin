@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Marcador temporal del logo de AVICOIN</title>
+  <desc id="description">Diseño provisional; no es el logo final.</desc>
+  <rect width="512" height="512" rx="96" fill="#151922"/>
+  <circle cx="256" cy="220" r="128" fill="none" stroke="#7ee787" stroke-width="18" stroke-dasharray="18 12"/>
+  <path d="M176 333h160" stroke="#7ee787" stroke-width="18" stroke-linecap="round"/>
+  <text x="256" y="245" text-anchor="middle" font-family="system-ui,sans-serif" font-size="76" font-weight="700" fill="#fff">AVI</text>
+  <text x="256" y="390" text-anchor="middle" font-family="system-ui,sans-serif" font-size="26" fill="#b7becb">LOGO PENDIENTE</text>
+</svg>

@@ -1,0 +1,10 @@
+allowBuilds:
+  bigint-buffer: false
+  esbuild: true
+ignoredOptionalDependencies:
+  - bufferutil
+  - utf-8-validate
+minimumReleaseAgeExclude:
+  - uuid@11.1.1
+overrides:
+  uuid@<11.1.1: ^11.1.1
