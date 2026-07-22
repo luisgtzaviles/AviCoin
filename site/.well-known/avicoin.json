@@ -1,0 +1,14 @@
+{
+  "project": "AVICOIN",
+  "environment": "devnet",
+  "mint": "8gmaV76WHvxG4Bkp865ufxSwWPNGqa5nQA6Sj8NwRqyK",
+  "decimals": 9,
+  "supply": "0",
+  "mintAuthority": "BFGzEAviMQ7FBwLC59sjx7dkgXJXLUAjEKLxoxEa28YU",
+  "freezeAuthority": null,
+  "metadataStatus": "not-written-on-chain",
+  "officialMetadataUri": "https://avicoin.avicell.com.mx/metadata.json",
+  "officialLogoUri": "https://avicoin.avicell.com.mx/logo.png",
+  "disclaimer": "Proyecto educativo en Solana devnet. No representa una inversión, un activo financiero ni una promesa de rendimiento.",
+  "updatedAt": "2026-07-22T20:49:33Z"
+}

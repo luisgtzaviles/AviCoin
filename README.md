@@ -8,7 +8,7 @@ Existe un mint de pruebas en devnet, registrado en la sección de despliegues. N
 
 La propuesta inicial es: nombre `AVICOIN`, símbolo `AVI`, devnet, 9 decimales, supply de referencia de 100,000,000 AVI (no emitido), mint authority conservada inicialmente y freeze authority pendiente de decisión. Véanse [tokenomics](docs/tokenomics.md) y [roadmap](docs/roadmap.md).
 
-El logo final `docs/logo.png` está pendiente. [logo-placeholder.svg](docs/logo-placeholder.svg) es solo un marcador original y claramente identificado; no debe publicarse como logo definitivo.
+El logo oficial está conservado en [docs/logo.png](docs/logo.png). [logo-placeholder.svg](docs/logo-placeholder.svg) permanece únicamente como registro del marcador provisional inicial.
 
 ## Requisitos e instalación
 
@@ -77,6 +77,13 @@ Los argumentos `MINT` y `URI` pueden provenir de `.env`. Los comandos transaccio
 - Freeze authority: ninguna
 - Metadata: pendiente
 - Estado: mint de pruebas creado
+
+#### Recursos públicos de devnet
+
+- Sitio oficial: <https://avicoin.avicell.com.mx/>
+- Metadata URI: <https://avicoin.avicell.com.mx/metadata.json>
+- Logo: <https://avicoin.avicell.com.mx/logo.png>
+- Estado de metadata on-chain: **Pendiente**
 
 ### Mainnet-beta
 

@@ -1,0 +1,30 @@
+{
+  "name": "AVICOIN",
+  "symbol": "AVI",
+  "description": "AVICOIN es un token educativo creado en Solana para aprender sobre blockchain y compartir entre amigos. No representa acciones, deuda, participación empresarial ni una promesa de rendimiento.",
+  "image": "https://avicoin.avicell.com.mx/logo.png",
+  "external_url": "https://avicoin.avicell.com.mx/",
+  "attributes": [
+    {
+      "trait_type": "Network",
+      "value": "Solana Devnet"
+    },
+    {
+      "trait_type": "Purpose",
+      "value": "Education and friends"
+    },
+    {
+      "trait_type": "Decimals",
+      "value": "9"
+    }
+  ],
+  "properties": {
+    "category": "image",
+    "files": [
+      {
+        "uri": "https://avicoin.avicell.com.mx/logo.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}
