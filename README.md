@@ -4,7 +4,7 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Existe un mint de pruebas en devnet, registrado en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La licencia está **pendiente de definir**.
+Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La licencia está **pendiente de definir**.
 
 La propuesta inicial es: nombre `AVICOIN`, símbolo `AVI`, devnet, 9 decimales, supply de referencia de 100,000,000 AVI (no emitido), mint authority conservada inicialmente y freeze authority pendiente de decisión. Véanse [tokenomics](docs/tokenomics.md) y [roadmap](docs/roadmap.md).
 
@@ -75,15 +75,20 @@ Los argumentos `MINT` y `URI` pueden provenir de `.env`. Los comandos transaccio
 - Supply actual: 0 AVI
 - Mint authority: wallet de administración AVICOIN
 - Freeze authority: ninguna
-- Metadata: pendiente
-- Estado: mint de pruebas creado
+- Metadata PDA: `3r8v8AteJkseWy3ex45ZmmSL8FrTVecdzhgcUX51k2ZL`
+- Metadata: creada y verificada on-chain
+- Update authority: `BFGzEAviMQ7FBwLC59sjx7dkgXJXLUAjEKLxoxEa28YU`
+- URI on-chain: <https://avicoin.avicell.com.mx/metadata.json>
+- Transacción: [`4CAe6Pz5bukY3baTgR9XoYaagJpxPaBHFxtyzNwE88X3qH4SSDEtMqvEox6KSt463jN2Z9rTEr8WvAanDCx7VE2R`](https://explorer.solana.com/tx/4CAe6Pz5bukY3baTgR9XoYaagJpxPaBHFxtyzNwE88X3qH4SSDEtMqvEox6KSt463jN2Z9rTEr8WvAanDCx7VE2R?cluster=devnet)
+- Evidencia técnica: [registro de metadata en devnet](docs/metadata-devnet.md)
+- Estado: mint y metadata de pruebas creados; supply sin emitir
 
 #### Recursos públicos de devnet
 
 - Sitio oficial: <https://avicoin.avicell.com.mx/>
 - Metadata URI: <https://avicoin.avicell.com.mx/metadata.json>
 - Logo: <https://avicoin.avicell.com.mx/logo.png>
-- Estado de metadata on-chain: **Pendiente**
+- Estado de metadata on-chain: **Creada y verificada en devnet**
 
 ### Mainnet-beta
 
