@@ -14,12 +14,30 @@
     "create-token": "tsx scripts/create-token.ts",
     "create-metadata": "tsx scripts/create-metadata.ts",
     "mint": "tsx scripts/mint.ts",
-    "transfer": "tsx scripts/transfer.ts"
+    "transfer": "tsx scripts/transfer.ts",
+    "mainnet:create-mint": "tsx scripts/mainnet/create-mint.ts",
+    "mainnet:create-metadata": "tsx scripts/mainnet/create-metadata.ts",
+    "mainnet:mint-fixed-supply": "tsx scripts/mainnet/mint-fixed-supply.ts",
+    "mainnet:revoke-mint-authority": "tsx scripts/mainnet/revoke-mint-authority.ts",
+    "orca:detect-pool": "tsx scripts/orca/detect-pool.ts",
+    "orca:quote-pool": "tsx scripts/orca/quote-pool.ts",
+    "orca:create-pool": "tsx scripts/orca/create-pool.ts",
+    "orca:open-position": "tsx scripts/orca/open-position.ts",
+    "orca:increase-liquidity": "tsx scripts/orca/increase-liquidity.ts",
+    "orca:decrease-liquidity": "tsx scripts/orca/decrease-liquidity.ts",
+    "orca:quote-swap": "tsx scripts/orca/quote-swap.ts",
+    "orca:execute-swap": "tsx scripts/orca/execute-swap.ts",
+    "orca:quote-return-swap": "tsx scripts/orca/quote-return-swap.ts",
+    "orca:execute-return-swap": "tsx scripts/orca/execute-return-swap.ts",
+    "orca:close-position": "tsx scripts/orca/close-position.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "3.4.0",
     "@metaplex-foundation/umi": "1.5.1",
     "@metaplex-foundation/umi-bundle-defaults": "1.5.1",
+    "@orca-so/whirlpools": "8.0.1",
+    "@orca-so/whirlpools-core": "3.1.0",
+    "@solana/kit": "5.5.1",
     "@solana/spl-token": "0.4.15",
     "@solana/web3.js": "1.98.4",
     "dotenv": "17.4.2",
@@ -28,6 +46,6 @@
   "devDependencies": {
     "@types/node": "26.1.1",
     "tsx": "4.23.1",
-    "typescript": "7.0.2"
+    "typescript": "5.9.3"
   }
 }

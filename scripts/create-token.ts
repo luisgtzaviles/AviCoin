@@ -2,7 +2,7 @@ import { createMint, getMinimumBalanceForRentExemptMint } from "@solana/spl-toke
 import { LAMPORTS_PER_SOL, type PublicKey } from "@solana/web3.js";
 import { loadConfig } from "./lib/config.js";
 import { isDirectExecution, reportFailure } from "./lib/entrypoint.js";
-import { confirmMutation } from "./lib/safety.js";
+import { assertLegacyDevnetOnly, confirmMutation } from "./lib/safety.js";
 import { assertRpcCluster, createConnection, explorerUrl, loadExternalKeypair, parsePublicKey } from "./lib/solana.js";
 
 function resolveFreezeAuthority(argument: string | undefined, payer: PublicKey): PublicKey | null {
@@ -13,6 +13,7 @@ function resolveFreezeAuthority(argument: string | undefined, payer: PublicKey):
 
 export async function main(): Promise<void> {
   const config = loadConfig();
+  assertLegacyDevnetOnly(config);
   const connection = createConnection(config);
   await assertRpcCluster(connection, config);
   const payer = await loadExternalKeypair(config.SOLANA_KEYPAIR_PATH);

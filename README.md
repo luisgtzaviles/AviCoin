@@ -4,7 +4,7 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La licencia está **pendiente de definir**.
+Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La preparación técnica de Mainnet está en curso: no hay wallet de producción designada, fondeo, mint, pool ni posición. La licencia está **pendiente de definir**.
 
 La propuesta inicial es: nombre `AVICOIN`, símbolo `AVI`, devnet, 9 decimales, supply de referencia de 100,000,000 AVI (no emitido), mint authority conservada inicialmente y freeze authority pendiente de decisión. Véanse [tokenomics](docs/tokenomics.md) y [roadmap](docs/roadmap.md).
 
@@ -26,7 +26,9 @@ pnpm typecheck
 
 ## Redes y protecciones
 
-`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Mainnet permanece bloqueada salvo que coincidan `SOLANA_NETWORK=mainnet-beta`, `ALLOW_MAINNET=true`, el RPC tenga el genesis hash correcto y se escriba la frase interactiva exacta. Cada mutación en devnet también exige confirmación. Los scripts rechazan ejecución no interactiva.
+`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Mainnet permanece bloqueada salvo que coincidan el genesis hash real, red, RPC, operación exacta, wallet pública esperada y signer; además requiere `ALLOW_MAINNET=true`, un dry-run fresco con parámetros idénticos y confirmación interactiva. El recibo local no autoriza por sí mismo ninguna operación.
+
+La configuración está separada en `config/devnet.ts` y `config/mainnet.ts`. Mainnet nunca hereda el mint de devnet. El estado inicial no secreto está en `config/mainnet-launch-state.json`; sus valores deben compararse siempre con el estado on-chain.
 
 ## Flujo previsto
 
@@ -98,4 +100,14 @@ La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-t
 
 ### Mainnet-beta
 
-Mint address: **Pendiente**. Mainnet permanece fuera del alcance actual; el mint de devnet no debe presentarse como un despliegue definitivo.
+Estado: **Mainnet preparation in progress / no Mainnet token created**.
+
+- Wallet de producción: no designada.
+- Mint address: pendiente.
+- Supply propuesto: exactamente 1,000 AVI sólo después de metadata verificada.
+- Freeze authority: ninguna.
+- Mint authority: se revocaría únicamente tras verificar supply fijo e invariantes.
+- Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
+- Metadata preparada localmente: `site/metadata-mainnet.json`; publicación pública pendiente.
+
+El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

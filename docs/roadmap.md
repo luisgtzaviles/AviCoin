@@ -11,3 +11,7 @@ Este orden es orientativo y no implica fechas, compromisos ni autorización para
 7. **Fase 6 — posibles utilidades futuras:** definirlas y revisarlas antes de cualquier implementación.
 
 Mercados, listado, provisión de liquidez y promesas económicas están fuera del alcance inicial.
+
+## Preparación Mainnet (en curso)
+
+La preparación técnica agrega configuración separada, gates por operación, dry-run obligatorio, supply fijo propuesto de 1,000 AVI y módulos de cotización Orca. No equivale a un lanzamiento. Permanecen pendientes la publicación de metadata Mainnet, designación y fondeo de wallet, creación del mint, metadata on-chain, emisión, revocación, pool, posición y cualquier swap.

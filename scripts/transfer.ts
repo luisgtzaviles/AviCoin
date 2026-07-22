@@ -1,11 +1,12 @@
 import { createAssociatedTokenAccountIdempotent, getAssociatedTokenAddress, getAccount, getMint, transferChecked } from "@solana/spl-token";
 import { loadConfig } from "./lib/config.js";
 import { isDirectExecution, reportFailure } from "./lib/entrypoint.js";
-import { baseUnitsToHuman, confirmMutation, humanToBaseUnits } from "./lib/safety.js";
+import { assertLegacyDevnetOnly, baseUnitsToHuman, confirmMutation, humanToBaseUnits } from "./lib/safety.js";
 import { assertRpcCluster, createConnection, explorerUrl, loadExternalKeypair, parsePublicKey } from "./lib/solana.js";
 
 export async function main(): Promise<void> {
   const config = loadConfig();
+  assertLegacyDevnetOnly(config);
   const mintAddress = parsePublicKey(process.argv[2] ?? config.TOKEN_MINT_ADDRESS, "mint address");
   const destinationOwner = parsePublicKey(process.argv[3] ?? "", "wallet destino");
   const amountText = process.argv[4] ?? "";

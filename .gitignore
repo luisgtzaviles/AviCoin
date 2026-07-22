@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .secrets/
+.avicoin-dry-runs/
 keys/
 *.keypair.json
 *.log

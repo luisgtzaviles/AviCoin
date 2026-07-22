@@ -4,7 +4,7 @@ import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { getMint } from "@solana/spl-token";
 import { loadConfig } from "./lib/config.js";
 import { isDirectExecution, reportFailure } from "./lib/entrypoint.js";
-import { confirmMutation } from "./lib/safety.js";
+import { assertLegacyDevnetOnly, confirmMutation } from "./lib/safety.js";
 import { assertRpcCluster, createConnection, explorerUrl, loadExternalKeypair, parsePublicKey } from "./lib/solana.js";
 
 function validateMetadataUri(value: string): string {
@@ -19,6 +19,7 @@ function validateMetadataUri(value: string): string {
 
 export async function main(): Promise<void> {
   const config = loadConfig();
+  assertLegacyDevnetOnly(config);
   const mintWeb3 = parsePublicKey(process.argv[2] ?? config.TOKEN_MINT_ADDRESS, "mint address");
   const uriValue = process.argv[3] ?? config.TOKEN_METADATA_URI;
   if (!uriValue) throw new Error("Falta TOKEN_METADATA_URI o el segundo argumento.");

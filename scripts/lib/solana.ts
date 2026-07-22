@@ -69,4 +69,14 @@ export function assertClusterMatchesConfig(genesisHash: string, config: AppConfi
 export async function assertRpcCluster(connection: Connection, config: AppConfig): Promise<void> {
   const genesisHash = await connection.getGenesisHash();
   assertClusterMatchesConfig(genesisHash, config);
+  if (genesisHash !== config.NETWORK_CONFIG.genesisHash) {
+    throw new Error("El genesis hash no coincide exactamente con la configuración estática seleccionada.");
+  }
+}
+
+export async function verifiedGenesisHash(connection: Connection, config: AppConfig): Promise<string> {
+  const genesisHash = await connection.getGenesisHash();
+  assertClusterMatchesConfig(genesisHash, config);
+  if (genesisHash !== config.NETWORK_CONFIG.genesisHash) throw new Error("Genesis hash distinto del esperado para la red configurada.");
+  return genesisHash;
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { AppConfig } from "../scripts/lib/config.js";
+import { loadConfig, type AppConfig } from "../scripts/lib/config.js";
 import {
   assertClusterMatchesConfig,
   DEVNET_GENESIS_HASH,
@@ -12,19 +12,12 @@ import {
 const TRUNCATED_DEVNET_HASH = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
 
 function config(overrides: Partial<AppConfig> = {}): AppConfig {
-  return {
+  const loaded = loadConfig({
     SOLANA_NETWORK: "devnet",
     SOLANA_RPC_URL: "https://api.devnet.solana.com",
-    SOLANA_KEYPAIR_PATH: "",
-    ALLOW_MAINNET: false,
-    TOKEN_NAME: "AVICOIN",
-    TOKEN_SYMBOL: "AVI",
-    TOKEN_DECIMALS: 9,
-    TOKEN_SUPPLY: "100000000",
-    TOKEN_MINT_ADDRESS: "",
-    TOKEN_METADATA_URI: "",
-    ...overrides,
-  };
+    ALLOW_MAINNET: "false",
+  });
+  return { ...loaded, ...overrides };
 }
 
 describe("Solana cluster genesis gate", () => {

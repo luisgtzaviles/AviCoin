@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "network": "mainnet-beta",
+  "production_wallet": null,
+  "avi_mint": null,
+  "metadata_pda": null,
+  "avi_ata": null,
+  "pool": null,
+  "position": null,
+  "mint_created": false,
+  "metadata_created": false,
+  "supply_minted": false,
+  "mint_authority_revoked": false,
+  "pool_created": false,
+  "position_opened": false,
+  "liquidity_added": false,
+  "swaps_tested": false
+}
