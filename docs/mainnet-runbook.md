@@ -1,24 +1,39 @@
 # Runbook de lanzamiento Mainnet AVICOIN
 
-Estado: preparación unsigned; **ningún paso transaccional ha sido ejecutado**. `ALLOW_MAINNET=false` y la firma Phantom permanece pendiente.
+Estado: adaptador Phantom disponible sólo para `create-mint`; **ninguna firma ni transacción Mainnet ha sido ejecutada**. La configuración persistente conserva `ALLOW_MAINNET=false`.
 
-## Sesión actual permitida
+## Revisión sin firma
 
-1. Ejecutar `pnpm mainnet:preflight-plan`.
-2. Releer genesis, wallet, SOL, USDC oficial y metadata pública.
-3. Revisar el plan de diez pasos, sus hashes, cuentas, signers requeridos, dependencias, rentas, fees y condiciones de detención.
-4. No crear recibos de autorización, no firmar y no enviar.
+1. Ejecutar `pnpm mainnet:preflight-plan` y revisar genesis, wallet, balances, metadata, costos y hashes.
+2. Para revisar la UI sin habilitar firma, iniciar una sesión local con `AVICOIN_MAINNET_OPERATION=create-mint` y `ALLOW_MAINNET=false`.
+3. Abrir exclusivamente la dirección `127.0.0.1` mostrada por el proceso y conectar Phantom.
+4. Confirmar que la wallet sea `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
+5. Usar `Build`, `Simulate` y `Review`. `Request signature` y `Send` deben permanecer deshabilitados.
 
-## Secuencia futura, sujeta a aprobación independiente
+## Sesión futura expresamente autorizada
 
-1. Conectar Phantom y exigir exactamente `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
-2. Crear mint con 9 decimales, supply 0 y freeze authority `none`. El mint signer será efímero y sólo en memoria durante esa sesión; su secreto no se persiste ni se imprime.
-3. Esperar `finalized`, releer la dirección generada y detenerse ante cualquier resultado ambiguo. Nunca crear automáticamente un segundo mint.
-4. Crear metadata on-chain inmutable usando exclusivamente la URI pública aprobada y releerla.
-5. Crear ATA AVI de producción.
-6. Emitir una sola vez exactamente `1,000 AVI` sólo si supply es 0 y el contador de emisiones completadas es 0.
-7. Verificar que la mint authority permanece en la wallet de producción y freeze authority es `none`. La revocación no forma parte del lanzamiento; queda como operación futura separada.
-8. Detectar y cotizar el pool AVI/USDC oficial. Crear pool, posición y liquidez sólo después de que el gate on-chain completo pase.
-9. Cotizar una compra educativa máxima de `0.10 USDC` y su venta de regreso; cada envío requiere aprobación Phantom independiente.
+No guardar estas variables en `.env`, archivos o historial compartido. Para una ejecución aprobada, establecer únicamente durante la vida del proceso:
 
-Ante timeout o resultado incierto se consulta la dirección previamente generada y se detiene. No se reintenta creando recursos alternativos. La retención de mint authority no garantiza un supply fijo y no habilita emisiones adicionales.
+- `SOLANA_NETWORK=mainnet-beta`;
+- RPC Mainnet HTTPS sin credenciales;
+- `AVICOIN_MAINNET_OPERATION=create-mint`;
+- `ALLOW_MAINNET=true`;
+- un `AVICOIN_CONFIRMATION_TOKEN` efímero de al menos 16 caracteres.
+
+Detener el proceso al concluir para retirar la autorización.
+
+## Flujo manual obligatorio
+
+1. **Connect**: Phantom solicita únicamente compartir la public key. No se firma nada.
+2. **Build**: el servidor relee estado/genesis/balance, genera un keypair de mint sólo en memoria y construye `SystemProgram.createAccount` más `initializeMint2`. Muestra mint esperado, programas, cuentas, signers, rentas, fee, balance y hashes.
+3. **Simulate**: simula el mismo mensaje con verificación de firmas deshabilitada. El dry-run dura diez minutos.
+4. **Review**: congela el plan y obliga a revisar operación, red, wallet, instrucciones, cambios y condiciones de detención.
+5. **Request signature**: requiere el token efímero y una casilla explícita. Phantom firma el mensaje ya simulado; el servidor verifica Ed25519 y que el mensaje/hash no cambió. Todavía no se envía.
+6. **Send**: exige una segunda casilla, vuelve a comprobar configuración, genesis, estado, blockhash, plan, firmas y ausencia de la cuenta. Envía una sola vez con reintentos RPC automáticos deshabilitados.
+7. **Verify finalized state**: espera `finalized`, relee owner SPL Token Program, decimales 9, supply 0, mint authority de producción y freeze authority `none`. Sólo después registra el mint como creado.
+
+## Fallos y resultados ambiguos
+
+No existe reintento automático. El primer intento de envío fija un bloqueo en memoria antes de llamar al RPC. Una ficha de recuperación local contiene sólo datos públicos —dirección esperada, firma, blockhash y hashes— y está ignorada por Git; nunca contiene keypair o transacción serializada. Ante timeout se consulta la firma y esa dirección, no se genera un mint sustituto.
+
+`create-metadata`, ATA, emisión, revocación, pool, posición, liquidez y swaps permanecen bloqueados. La retención de mint authority no garantiza supply fijo ni habilita emisiones adicionales.

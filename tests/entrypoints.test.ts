@@ -11,6 +11,7 @@ const entrypoints = [
   "../scripts/mainnet/mint-fixed-supply.js",
   "../scripts/mainnet/revoke-mint-authority.js",
   "../scripts/mainnet/preflight-plan.js",
+  "../scripts/phantom/server.js",
   "../scripts/orca/detect-pool.js",
   "../scripts/orca/quote-pool.js",
   "../scripts/orca/create-pool.js",

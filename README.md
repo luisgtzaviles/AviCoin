@@ -26,7 +26,7 @@ pnpm typecheck
 
 ## Redes y protecciones
 
-`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Las consultas y el plan unsigned validan genesis, RPC y wallet con `ALLOW_MAINNET=false`. La firma y el envío Mainnet continúan deshabilitados hasta que exista un adaptador Phantom auditado; ningún plan local o hash autoriza una operación real.
+`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Las consultas y el plan unsigned validan genesis, RPC y wallet con `ALLOW_MAINNET=false`. El adaptador Phantom está implementado únicamente para `create-mint`, pero la firma y el envío permanecen bloqueados salvo una sesión efímera deliberada con operación exacta, token de confirmación y `ALLOW_MAINNET=true`. Ningún plan local o hash autoriza por sí mismo una operación real.
 
 La configuración está separada en `config/devnet.ts` y `config/mainnet.ts`. Mainnet nunca hereda el mint de devnet. El estado inicial no secreto está en `config/mainnet-launch-state.json`; sus valores deben compararse siempre con el estado on-chain.
 
@@ -57,7 +57,11 @@ El preflight Mainnet actual es exclusivamente read-only/unsigned:
 pnpm mainnet:preflight-plan
 ```
 
-La interfaz local de revisión está en `tools/phantom/`. Sólo conecta Phantom y comprueba la public key; deliberadamente no contiene métodos de firma o envío. Cada operación futura requerirá una aprobación independiente cuando el adaptador sea implementado y auditado.
+La interfaz local autocontenida se inicia con `pnpm phantom:serve` y usa exclusivamente el proveedor inyectado por Phantom. No usa CDN, no solicita secretos y no firma al conectar o cargar. Su flujo manual es:
+
+`Connect → Build → Simulate → Review → Request signature → Send → Verify finalized state`.
+
+Sólo `create-mint` está habilitada en el adaptador. Construye exactamente `createAccount + initializeMint2` con 9 decimales, supply 0, mint authority igual a la wallet de producción y freeze authority `none`. Metadata, ATA, emisión, pool, posición y swaps siguen bloqueados.
 
 `create-token` no asigna freeze authority por defecto. Se puede elegir explícitamente `none`, `payer` o una dirección pública con `--freeze-authority=VALOR`; esta decisión debe revisarse antes de crear el mint.
 
@@ -118,6 +122,6 @@ Estado: **Mainnet preparation in progress / no Mainnet token created**.
 - Mint authority: retenida temporalmente por la wallet de producción; esto no garantiza supply fijo ni autoriza nuevas emisiones.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
 - Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, publicada y verificada por SHA-256. La metadata on-chain continúa pendiente.
-- Estado de seguridad: `ALLOW_MAINNET=false`, firma pendiente, transacciones Mainnet ejecutadas: 0.
+- Estado de seguridad: adaptador `create-mint` implementado; `ALLOW_MAINNET=false`; firmas solicitadas: 0; transacciones Mainnet ejecutadas: 0.
 
 El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

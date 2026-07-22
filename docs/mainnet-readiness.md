@@ -1,6 +1,6 @@
 # AVICOIN Mainnet Readiness
 
-Estado: **política remediada; adaptador de firma Phantom pendiente; ningún recurso Mainnet creado**.
+Estado: **adaptador Phantom `create-mint` implementado y validado; ningún recurso Mainnet creado**.
 
 ## Preparado y validado
 
@@ -12,13 +12,17 @@ Estado: **política remediada; adaptador de firma Phantom pendiente; ningún rec
 - Mint authority: `retained_temporarily`; freeze authority: `none` permanentemente.
 - El gate del pool admite `retained_temporarily` y la política futura `revoked`, pero exige invariantes on-chain exactas y rechaza cualquier política desconocida.
 - `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones y firmas: 0.
+- Servidor limitado a `127.0.0.1`, UI autocontenida sin CDN, CSP local y proveedor oficial `window.phantom.solana`.
+- Flujo separado `Build → Simulate → Review → Request signature → Send → Verify finalized state`, con token efímero y dos confirmaciones explícitas.
+- Keypair del mint generado sólo en memoria; únicamente su dirección pública y hashes pueden conservarse para resolver un estado ambiguo.
+- El mensaje firmable no se entrega antes de un dry-run vigente. El servidor verifica las firmas de Phantom y del mint contra el mismo mensaje, blockhash y plan antes de permitir un único envío.
 
 ## Preflight read-only y costos observados
 
 El preflight SDK del 2026-07-22 releyó `0.071933519 SOL`, `10.89983 USDC` oficial, genesis y metadata. El cálculo de rentas por tamaños de cuenta estima `0.167431040 SOL` mínimo y `0.239907680 SOL` máximo antes de margen. Con margen recomendado de 25%, el techo es `0.299884600 SOL`; el saldo quedaría en `-0.227951081 SOL`, por lo que **se requiere más SOL antes de cualquier lanzamiento**. Los tick arrays dominan la estimación y deben recotizarse según cuentas ya existentes.
 
-## Gate pendiente
+## Alcance operativo
 
-La UI local de `tools/phantom/` sólo conecta y verifica la public key. El adaptador que construya, simule, solicite una aprobación Phantom por operación y envíe todavía no está implementado. Hasta su auditoría, los entrypoints Mainnet sólo ofrecen plan unsigned o detienen el envío.
+Sólo `create-mint` tiene adaptador. `create-metadata`, `mint-fixed-supply`, pool, posición, liquidez y swaps continúan bloqueados. El proceso local no lee `.env`: una ejecución futura autorizada debe recibir `ALLOW_MAINNET=true`, `AVICOIN_MAINNET_OPERATION=create-mint` y un token de confirmación de al menos 16 caracteres únicamente como variables de esa sesión. La configuración persistente continúa en `ALLOW_MAINNET=false`.
 
-El archivo de estado local nunca sustituye la relectura on-chain ni autoriza una transacción. Mint, metadata on-chain, ATA AVI, supply, pool, posición y swaps permanecen sin crear.
+Después del envío no existe reintento automático. Se espera `finalized`, se verifica owner SPL Token Program, 9 decimales, supply 0, mint authority exacta y freeze authority `none`; sólo entonces se actualiza el estado público. Un timeout conserva una ficha pública ignorada por Git con dirección esperada, firma y hashes, bloquea un segundo mint y exige resolución manual. Mint, metadata on-chain, ATA AVI, supply, pool, posición y swaps permanecen sin crear.

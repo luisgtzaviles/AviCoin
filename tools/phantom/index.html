@@ -4,31 +4,61 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>AVICOIN Mainnet — revisión unsigned</title>
-  <link rel="stylesheet" href="./styles.css">
+  <title>AVICOIN · Phantom Mainnet Mint</title>
+  <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main>
-    <p class="eyebrow">AVICOIN · MAINNET REVIEW</p>
-    <h1>Una aprobación por operación.<br><span>Ninguna firma en esta versión.</span></h1>
-    <p class="lede">Esta interfaz local conecta Phantom sólo para comprobar la public key de producción y revisar el plan. El adaptador de firma y envío permanece bloqueado hasta una auditoría posterior.</p>
+    <header>
+      <p class="eyebrow">AVICOIN · MAINNET · OPERACIÓN ÚNICA</p>
+      <h1>Create mint,<br><span>paso por paso.</span></h1>
+      <p class="lede">La interfaz no firma al conectar ni envía al cargar. Construye un solo mint con 9 decimales, supply 0 y freeze authority none; cada transición exige una acción explícita.</p>
+    </header>
+
     <section class="wallet-card" aria-labelledby="wallet-title">
       <div>
-        <p class="label" id="wallet-title">Wallet esperada</p>
-        <code id="expected-wallet">EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code>
+        <p class="label" id="wallet-title">Wallet Phantom autorizada</p>
+        <code>EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code>
       </div>
-      <button id="connect" type="button">Conectar y verificar Phantom</button>
-      <p id="status" role="status">No conectada. No se ejecuta nada al cargar.</p>
+      <button id="connect" type="button">Connect Phantom</button>
+      <p id="execution-gate" class="gate">Sin conexión. ALLOW_MAINNET no se modifica desde la UI.</p>
+      <p id="status" role="status" data-tone="neutral">No se ejecutó ninguna operación.</p>
     </section>
-    <section>
-      <div class="section-heading"><p class="label">Plan de lanzamiento</p><p>Unsigned · adapter pending</p></div>
-      <ol id="operations"></ol>
+
+    <section aria-labelledby="workflow-title">
+      <div class="section-heading">
+        <div><p class="label">Flujo auditado</p><h2 id="workflow-title">Una acción, una decisión</h2></div>
+        <span class="badge">create-mint only</span>
+      </div>
+      <div class="workflow" role="group" aria-label="Controles create-mint">
+        <button id="build" type="button" disabled><b>01</b> Build</button>
+        <button id="simulate" type="button" disabled><b>02</b> Simulate</button>
+        <button id="review" type="button" disabled><b>03</b> Review</button>
+      </div>
+      <div class="confirmation-panel">
+        <label for="confirmation-token">Token efímero de confirmación</label>
+        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="No se guarda en el navegador">
+        <label class="check"><input id="signature-confirm" type="checkbox"> Revisé operación, red, wallet, cuentas, rentas, fees y hashes.</label>
+        <button id="request-signature" type="button" disabled><b>04</b> Request signature</button>
+        <label class="check"><input id="send-confirm" type="checkbox"> Confirmo nuevamente el envío único del mismo mensaje firmado.</label>
+        <div class="workflow final-actions">
+          <button id="send" type="button" disabled><b>05</b> Send</button>
+          <button id="verify" type="button" disabled><b>06</b> Verify finalized state</button>
+        </div>
+      </div>
     </section>
-    <aside>
-      <strong>Bloqueos activos</strong>
-      <p>ALLOW_MAINNET=false · sin operación autorizada · sin recibo ejecutable · sin acceso a secretos · 0 transacciones</p>
-    </aside>
+
+    <section class="plan-section" aria-labelledby="plan-title">
+      <div class="section-heading"><div><p class="label">Revisión previa</p><h2 id="plan-title">Plan y mensaje exactos</h2></div></div>
+      <dl id="plan" class="plan"><div><dt>Estado</dt><dd>Ejecuta Build para generar una sesión efímera.</dd></div></dl>
+    </section>
+
+    <section class="blocked" aria-labelledby="blocked-title">
+      <p class="label">Fuera de alcance</p>
+      <h2 id="blocked-title">Operaciones posteriores bloqueadas</h2>
+      <ul id="blocked-operations"></ul>
+    </section>
   </main>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

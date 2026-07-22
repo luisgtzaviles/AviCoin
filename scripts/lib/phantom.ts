@@ -20,5 +20,5 @@ export function assertNoSecretMaterial(value: unknown): void {
 }
 
 export function assertPhantomSigningAdapterPending(): never {
-  throw new Error("Firma y envío bloqueados: el adaptador auditado de Phantom todavía está pendiente.");
+  throw new Error("Operación bloqueada: sólo create-mint tiene adaptador Phantom habilitado en esta fase.");
 }

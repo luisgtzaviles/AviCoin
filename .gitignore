@@ -3,6 +3,7 @@ dist/
 .env
 .secrets/
 .avicoin-dry-runs/
+.avicoin-phantom-sessions/
 keys/
 *.keypair.json
 *.log

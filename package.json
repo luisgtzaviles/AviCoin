@@ -20,6 +20,7 @@
     "mainnet:mint-fixed-supply": "tsx scripts/mainnet/mint-fixed-supply.ts",
     "mainnet:revoke-mint-authority": "tsx scripts/mainnet/revoke-mint-authority.ts",
     "mainnet:preflight-plan": "tsx scripts/mainnet/preflight-plan.ts --dry-run",
+    "phantom:serve": "tsx scripts/phantom/server.ts",
     "orca:detect-pool": "tsx scripts/orca/detect-pool.ts",
     "orca:quote-pool": "tsx scripts/orca/quote-pool.ts",
     "orca:create-pool": "tsx scripts/orca/create-pool.ts",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "26.1.1",
+    "esbuild": "0.28.1",
     "tsx": "4.23.1",
     "typescript": "5.9.3"
   }
