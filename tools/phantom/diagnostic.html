@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AVICOIN · Phantom Local Diagnostic</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">AVICOIN · DIAGNÓSTICO LOCAL · SIN TRANSACCIONES</p>
+      <h1>Phantom,<br><span>conexión manual.</span></h1>
+      <p class="lede">Esta página sólo detecta el proveedor inyectado y permite solicitar <code>connect()</code> al pulsar el botón. No construye transacciones, no genera keypairs y no solicita firmas.</p>
+    </header>
+
+    <section class="wallet-card" aria-labelledby="wallet-title">
+      <div>
+        <p class="label" id="wallet-title">Wallet esperada</p>
+        <code>EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code>
+      </div>
+      <button id="connect" type="button" disabled>Connect Phantom</button>
+      <p id="wait-state" class="gate">Esperando la inyección de Phantom durante un máximo de 30 segundos…</p>
+      <p id="status" role="status" data-tone="neutral">No se llamó connect().</p>
+    </section>
+
+    <section class="plan-section" aria-labelledby="diagnostics-title">
+      <div class="section-heading">
+        <div><p class="label">Entorno real del navegador</p><h2 id="diagnostics-title">Diagnóstico de inyección</h2></div>
+        <span class="badge">top-level only</span>
+      </div>
+      <dl id="diagnostics" class="plan"></dl>
+    </section>
+
+    <section class="blocked" aria-labelledby="events-title">
+      <p class="label">Eventos observados</p>
+      <h2 id="events-title">Proveedor Phantom</h2>
+      <ul id="events"><li>Página cargada; connect() no se ejecuta automáticamente.</li></ul>
+    </section>
+  </main>
+  <script type="module" src="/diagnostic.js"></script>
+</body>
+</html>

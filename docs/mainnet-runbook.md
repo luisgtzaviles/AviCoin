@@ -2,6 +2,13 @@
 
 Estado: adaptador Phantom disponible sólo para `create-mint`; **ninguna firma ni transacción Mainnet ha sido ejecutada**. La configuración persistente conserva `ALLOW_MAINNET=false`.
 
+## Diagnóstico local de conexión Phantom
+
+1. Conservar `ALLOW_MAINNET=false` e iniciar únicamente el diagnóstico con `pnpm phantom:diagnose`.
+2. Abrir manualmente la URL loopback mostrada en la terminal en el perfil normal de Chrome donde Phantom está instalado y desbloqueado.
+3. Nunca usar perfiles automatizados, previews, webviews, iframes ni instancias temporales del navegador para esta comprobación.
+4. Pulsar `Connect Phantom` sólo después de que la página detecte el proveedor. El diagnóstico únicamente valida la public key; no autoriza, construye ni firma operaciones.
+
 ## Revisión sin firma
 
 1. Ejecutar `pnpm mainnet:preflight-plan` y revisar genesis, wallet, balances, metadata, costos y hashes.

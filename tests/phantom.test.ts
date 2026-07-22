@@ -25,4 +25,22 @@ describe("frontera Phantom no custodial", () => {
     assert.equal(/signAndSendTransaction|provider\.sendTransaction/u.test(source), false);
     assert.match(source, /if \(typeof window !== "undefined"/);
   });
+  it("el diagnóstico local sólo expone connect y no contiene primitivas transaccionales", async () => {
+    const diagnostic = await import(pathToFileURL(resolve("tools/phantom/diagnostic.js")).href) as {
+      PRODUCTION_WALLET: string;
+      collectDiagnostics: (windowRef: unknown, documentRef: unknown) => Record<string, unknown>;
+    };
+    assert.equal(diagnostic.PRODUCTION_WALLET, MAINNET_PRODUCTION_WALLET);
+    const source = await readFile("tools/phantom/diagnostic.js", "utf8");
+    assert.match(source, /phantom\.solana\.connect\(\)/);
+    assert.equal(/signTransaction|signMessage|VersionedTransaction|Keypair|createAccount/u.test(source), false);
+    assert.match(source, /INJECTION_TIMEOUT_MS = 30_000/);
+  });
+  it("el servidor diagnóstico escucha sólo en loopback y rechaza ALLOW_MAINNET=true", async () => {
+    const source = await readFile("scripts/phantom/diagnostic-server.ts", "utf8");
+    assert.match(source, /server\.listen\(port, "127\.0\.0\.1"/);
+    assert.match(source, /ALLOW_MAINNET === "true"/);
+    assert.match(source, /server\.closeAllConnections\(\)/);
+    assert.equal(/@solana|Keypair|create-mint|signTransaction/u.test(source), false);
+  });
 });
