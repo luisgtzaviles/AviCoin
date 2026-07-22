@@ -90,6 +90,12 @@ Los argumentos `MINT` y `URI` pueden provenir de `.env`. Los comandos transaccio
 - Logo: <https://avicoin.avicell.com.mx/logo.png>
 - Estado de metadata on-chain: **Creada y verificada en devnet**
 
+#### Devnet Token Lifecycle Validation
+
+El ciclo técnico de emisión, transferencia, devolución y burn fue validado completamente en devnet el 2026-07-22. Se emitió temporalmente `1 AVI`, se transfirieron `0.1 AVI` a una segunda wallet controlada, se devolvieron y finalmente se quemó `1 AVI`. El supply y los balances de ambos ATA terminaron nuevamente en `0`; metadata, URI y authorities permanecieron sin cambios.
+
+La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-token-lifecycle.md](docs/devnet-token-lifecycle.md).
+
 ### Mainnet-beta
 
 Mint address: **Pendiente**. Mainnet permanece fuera del alcance actual; el mint de devnet no debe presentarse como un despliegue definitivo.
