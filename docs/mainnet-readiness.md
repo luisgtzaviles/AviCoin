@@ -10,12 +10,11 @@ Estado: **Mainnet preparation in progress / no Mainnet token created**.
 - Dry-run obligatorio, recibo SHA-256 ligado a configuración/wallet/parámetros y caducidad de 30 minutos.
 - Scripts separados para mint, metadata, supply fijo y revocación.
 - SDK oficial Orca fijado y módulos separados de lectura, cotización y operaciones.
-- Metadata Mainnet creada localmente en `site/metadata-mainnet.json`.
+- Metadata Mainnet publicada en `https://avicoin.avicell.com.mx/metadata-mainnet.json` y verificada contra `site/metadata-mainnet.json` con SHA-256 `80b7c815d346a66ac8572df04b06d1781b79c42da4631ced2cc94f0983d962f2`.
 - Estado de lanzamiento no secreto inicializado con valores nulos/falsos.
 
 ## Gates pendientes
 
-- Publicar y validar por HTTPS `metadata-mainnet.json` mediante un mecanismo de despliegue auditado.
 - Designar una wallet de producción externa y registrar sólo su public key.
 - Fondear con SOL y 10 USDC oficiales sin usar automatización de este repositorio.
 - Ejecutar preflight read-only y obtener aprobación separada para cada operación.

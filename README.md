@@ -108,6 +108,6 @@ Estado: **Mainnet preparation in progress / no Mainnet token created**.
 - Freeze authority: ninguna.
 - Mint authority: se revocaría únicamente tras verificar supply fijo e invariantes.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
-- Metadata preparada localmente: `site/metadata-mainnet.json`; publicación pública pendiente.
+- Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, publicada y verificada por SHA-256. La metadata on-chain continúa pendiente.
 
 El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).
