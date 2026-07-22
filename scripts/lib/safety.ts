@@ -60,6 +60,13 @@ export function assertMainnetAuthorization(config: AppConfig, operation: Mainnet
   if (config.AVICOIN_PRODUCTION_WALLET !== signer) throw new Error("El signer no coincide exactamente con AVICOIN_PRODUCTION_WALLET.");
 }
 
+export function assertUnsignedMainnetDryRun(config: AppConfig): void {
+  if (config.SOLANA_NETWORK !== "mainnet-beta") throw new Error("El plan unsigned requiere mainnet-beta explícita.");
+  if (config.ALLOW_MAINNET) throw new Error("El plan unsigned exige ALLOW_MAINNET=false.");
+  if (config.MAINNET_OPERATION !== undefined) throw new Error("El plan unsigned no admite una operación persistente autorizada.");
+  if (!config.AVICOIN_PRODUCTION_WALLET) throw new Error("Falta la public key de production_wallet.");
+}
+
 export function assertLegacyDevnetOnly(config: AppConfig): void {
   if (config.SOLANA_NETWORK !== "devnet") {
     throw new Error("Este entrypoint histórico está limitado a devnet. Usa exclusivamente el entrypoint mainnet específico con dry-run y autorización por operación.");

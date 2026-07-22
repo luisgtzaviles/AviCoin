@@ -10,17 +10,15 @@ const httpUrl = z.url().refine((value) => {
 const operation = z.enum([
   "create-mint", "create-metadata", "mint-fixed-supply", "revoke-mint-authority",
   "create-pool", "open-position", "increase-liquidity", "decrease-liquidity",
-  "test-swap", "close-position",
+  "test-swap", "return-swap", "close-position",
 ]);
 
 const schema = z.object({
   SOLANA_NETWORK: z.enum(["devnet", "mainnet-beta"]).default("devnet"),
   SOLANA_RPC_URL: httpUrl.optional(),
   SOLANA_KEYPAIR_PATH: z.string().default(""),
-  AVICOIN_MINT_KEYPAIR_PATH: z.string().default(""),
   AVICOIN_PRODUCTION_WALLET: z.string().trim().default(""),
   AVICOIN_TEST_WALLET: z.string().trim().default(""),
-  AVICOIN_TEST_KEYPAIR_PATH: z.string().default(""),
   AVICOIN_MAINNET_OPERATION: operation.optional(),
   ALLOW_MAINNET: z.stringbool().default(false),
   TOKEN_NAME: z.string().trim().min(1).max(32).default("AVICOIN"),
@@ -55,7 +53,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     TOKEN_NAME: isMainnet ? staticConfig.token.name : result.data.TOKEN_NAME,
     TOKEN_SYMBOL: isMainnet ? staticConfig.token.symbol : result.data.TOKEN_SYMBOL,
     TOKEN_DECIMALS: isMainnet ? staticConfig.token.decimals : result.data.TOKEN_DECIMALS,
-    TOKEN_SUPPLY: isMainnet ? "1000" : result.data.TOKEN_SUPPLY,
+    AVICOIN_PRODUCTION_WALLET: isMainnet ? (staticConfig.operatorWallet ?? "") : result.data.AVICOIN_PRODUCTION_WALLET,
+    TOKEN_SUPPLY: isMainnet ? staticConfig.supplyPolicy.initialLaunchSupply.toString() : result.data.TOKEN_SUPPLY,
     TOKEN_MINT_ADDRESS: isMainnet ? (staticConfig.token.mintAddress ?? "") : result.data.TOKEN_MINT_ADDRESS,
     TOKEN_METADATA_URI: isMainnet ? staticConfig.token.metadataUri : result.data.TOKEN_METADATA_URI,
     NETWORK_CONFIG: staticConfig,

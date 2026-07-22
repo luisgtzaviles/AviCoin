@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AVICOIN Mainnet — revisión unsigned</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">AVICOIN · MAINNET REVIEW</p>
+    <h1>Una aprobación por operación.<br><span>Ninguna firma en esta versión.</span></h1>
+    <p class="lede">Esta interfaz local conecta Phantom sólo para comprobar la public key de producción y revisar el plan. El adaptador de firma y envío permanece bloqueado hasta una auditoría posterior.</p>
+    <section class="wallet-card" aria-labelledby="wallet-title">
+      <div>
+        <p class="label" id="wallet-title">Wallet esperada</p>
+        <code id="expected-wallet">EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code>
+      </div>
+      <button id="connect" type="button">Conectar y verificar Phantom</button>
+      <p id="status" role="status">No conectada. No se ejecuta nada al cargar.</p>
+    </section>
+    <section>
+      <div class="section-heading"><p class="label">Plan de lanzamiento</p><p>Unsigned · adapter pending</p></div>
+      <ol id="operations"></ol>
+    </section>
+    <aside>
+      <strong>Bloqueos activos</strong>
+      <p>ALLOW_MAINNET=false · sin operación autorizada · sin recibo ejecutable · sin acceso a secretos · 0 transacciones</p>
+    </aside>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

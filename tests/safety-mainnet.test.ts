@@ -9,12 +9,14 @@ import {
   assertLegacyDevnetOnly,
   assertMainnetAuthorization,
   assertOnlyArguments,
+  assertUnsignedMainnetDryRun,
   buildOperationContext,
   executeGuarded,
   operationFingerprint,
   writeDryRunReceipt,
 } from "../scripts/lib/safety.js";
 import { MAINNET_GENESIS_HASH } from "../scripts/lib/solana.js";
+import { MAINNET_PRODUCTION_WALLET } from "../config/mainnet.js";
 
 const temporaryDirectories: string[] = [];
 afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
@@ -25,18 +27,27 @@ function mainnetConfig(operation = "create-mint") {
     SOLANA_RPC_URL: "https://api.mainnet-beta.solana.com",
     ALLOW_MAINNET: "true",
     AVICOIN_MAINNET_OPERATION: operation,
-    AVICOIN_PRODUCTION_WALLET: "WalletEsperada",
+    AVICOIN_PRODUCTION_WALLET: MAINNET_PRODUCTION_WALLET,
   });
 }
 
 describe("autorización Mainnet por operación", () => {
   it("rechaza Mainnet sin ALLOW_MAINNET", () => {
     const config = loadConfig({ SOLANA_NETWORK: "mainnet-beta", AVICOIN_MAINNET_OPERATION: "create-mint", AVICOIN_PRODUCTION_WALLET: "WalletEsperada" });
-    assert.throws(() => assertMainnetAuthorization(config, "create-mint", "WalletEsperada"), /ALLOW_MAINNET/);
+    assert.throws(() => assertMainnetAuthorization(config, "create-mint", MAINNET_PRODUCTION_WALLET), /ALLOW_MAINNET/);
+  });
+
+  it("permite plan unsigned con ALLOW_MAINNET=false y sin operación persistente", () => {
+    const config = loadConfig({ SOLANA_NETWORK: "mainnet-beta", ALLOW_MAINNET: "false" });
+    assert.doesNotThrow(() => assertUnsignedMainnetDryRun(config));
+  });
+
+  it("rechaza usar el modo unsigned como autorización de envío", () => {
+    assert.throws(() => assertUnsignedMainnetDryRun(mainnetConfig()), /ALLOW_MAINNET=false/);
   });
 
   it("rechaza una operación distinta", () => {
-    assert.throws(() => assertMainnetAuthorization(mainnetConfig("create-metadata"), "create-mint", "WalletEsperada"), /debe ser exactamente create-mint/);
+    assert.throws(() => assertMainnetAuthorization(mainnetConfig("create-metadata"), "create-mint", MAINNET_PRODUCTION_WALLET), /debe ser exactamente create-mint/);
   });
 
   it("rechaza una wallet distinta", () => {
@@ -44,7 +55,7 @@ describe("autorización Mainnet por operación", () => {
   });
 
   it("acepta sólo la combinación exacta", () => {
-    assert.doesNotThrow(() => assertMainnetAuthorization(mainnetConfig(), "create-mint", "WalletEsperada"));
+    assert.doesNotThrow(() => assertMainnetAuthorization(mainnetConfig(), "create-mint", MAINNET_PRODUCTION_WALLET));
   });
 
   it("bloquea todos los entrypoints históricos en Mainnet", () => {

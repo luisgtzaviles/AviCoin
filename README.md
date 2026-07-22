@@ -4,9 +4,9 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La preparación técnica de Mainnet está en curso: no hay wallet de producción designada, fondeo, mint, pool ni posición. La licencia está **pendiente de definir**.
+Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La wallet pública de producción ya fue designada y fondeada, pero todavía no hay mint, metadata on-chain, ATA AVI, pool ni posición Mainnet. La licencia está **pendiente de definir**.
 
-La propuesta inicial es: nombre `AVICOIN`, símbolo `AVI`, devnet, 9 decimales, supply de referencia de 100,000,000 AVI (no emitido), mint authority conservada inicialmente y freeze authority pendiente de decisión. Véanse [tokenomics](docs/tokenomics.md) y [roadmap](docs/roadmap.md).
+El registro histórico de devnet usa nombre `AVICOIN`, símbolo `AVI`, 9 decimales y supply 0. La política Mainnet vigente es distinta y está documentada en [tokenomics](docs/tokenomics.md) y [readiness](docs/mainnet-readiness.md).
 
 El logo oficial está conservado en [docs/logo.png](docs/logo.png). [logo-placeholder.svg](docs/logo-placeholder.svg) permanece únicamente como registro del marcador provisional inicial.
 
@@ -26,7 +26,7 @@ pnpm typecheck
 
 ## Redes y protecciones
 
-`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Mainnet permanece bloqueada salvo que coincidan el genesis hash real, red, RPC, operación exacta, wallet pública esperada y signer; además requiere `ALLOW_MAINNET=true`, un dry-run fresco con parámetros idénticos y confirmación interactiva. El recibo local no autoriza por sí mismo ninguna operación.
+`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Las consultas y el plan unsigned validan genesis, RPC y wallet con `ALLOW_MAINNET=false`. La firma y el envío Mainnet continúan deshabilitados hasta que exista un adaptador Phantom auditado; ningún plan local o hash autoriza una operación real.
 
 La configuración está separada en `config/devnet.ts` y `config/mainnet.ts`. Mainnet nunca hereda el mint de devnet. El estado inicial no secreto está en `config/mainnet-launch-state.json`; sus valores deben compararse siempre con el estado on-chain.
 
@@ -50,6 +50,14 @@ pnpm transfer -- [MINT] [WALLET_DESTINO] [CANTIDAD]
 ```
 
 Los argumentos `MINT` y `URI` pueden provenir de `.env`. Los comandos transaccionales solo preparan y envían una operación después de mostrar un resumen y recibir confirmación; ninguno debe automatizarse sin revisión.
+
+El preflight Mainnet actual es exclusivamente read-only/unsigned:
+
+```bash
+pnpm mainnet:preflight-plan
+```
+
+La interfaz local de revisión está en `tools/phantom/`. Sólo conecta Phantom y comprueba la public key; deliberadamente no contiene métodos de firma o envío. Cada operación futura requerirá una aprobación independiente cuando el adaptador sea implementado y auditado.
 
 `create-token` no asigna freeze authority por defecto. Se puede elegir explícitamente `none`, `payer` o una dirección pública con `--freeze-authority=VALOR`; esta decisión debe revisarse antes de crear el mint.
 
@@ -102,12 +110,14 @@ La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-t
 
 Estado: **Mainnet preparation in progress / no Mainnet token created**.
 
-- Wallet de producción: no designada.
+- Wallet de producción Phantom: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq` (sólo public key).
 - Mint address: pendiente.
-- Supply propuesto: exactamente 1,000 AVI sólo después de metadata verificada.
+- Supply inicial autorizado: una sola operación `mintTo` de exactamente 1,000 AVI cuando supply sea 0.
+- Supply máximo permanente: no definido (`null`). No se autoriza emisión adicional en esta etapa.
 - Freeze authority: ninguna.
-- Mint authority: se revocaría únicamente tras verificar supply fijo e invariantes.
+- Mint authority: retenida temporalmente por la wallet de producción; esto no garantiza supply fijo ni autoriza nuevas emisiones.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
 - Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, publicada y verificada por SHA-256. La metadata on-chain continúa pendiente.
+- Estado de seguridad: `ALLOW_MAINNET=false`, firma pendiente, transacciones Mainnet ejecutadas: 0.
 
 El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

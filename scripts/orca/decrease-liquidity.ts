@@ -13,7 +13,7 @@ export async function main(): Promise<void> {
   await runOrcaOperation("decrease-liquidity", { position: state.position, liquidity: liquidityArgument }, async (runtime) => {
     const plan = await decreaseLiquidityInstructions(kitRpc(runtime.config.SOLANA_RPC_URL), address(state.position as string), { liquidity: BigInt(liquidityArgument) }, {
       slippageToleranceBps: 100,
-      authority: createNoopSigner(address(runtime.operator.publicKey.toBase58())),
+      authority: createNoopSigner(address(runtime.operator.toBase58())),
       whirlpoolDeployment: WhirlpoolDeployment.mainnet,
     });
     console.table({ token_est_A: plan.quote.tokenEstA.toString(), token_est_B: plan.quote.tokenEstB.toString(), token_min_A: plan.quote.tokenMinA.toString(), token_min_B: plan.quote.tokenMinB.toString() });

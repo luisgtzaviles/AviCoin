@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { MAINNET_CONFIG, MAINNET_FIXED_SUPPLY_BASE_UNITS, MAINNET_USDC_MINT } from "../config/index.js";
+import { MAINNET_CONFIG, MAINNET_INITIAL_LAUNCH_BASE_UNITS, MAINNET_PRODUCTION_WALLET, MAINNET_USDC_MINT } from "../config/index.js";
 import { DEVNET_CONFIG } from "../config/devnet.js";
 import { loadConfig } from "../scripts/lib/config.js";
 
@@ -10,18 +10,21 @@ describe("configuración multired", () => {
     assert.equal(DEVNET_CONFIG.token.metadataUri, "https://avicoin.avicell.com.mx/metadata.json");
   });
 
-  it("mainnet inicia sin mint ni wallet y nunca hereda el mint devnet", () => {
+  it("mainnet inicia sin mint y con la public key Phantom designada", () => {
     const config = loadConfig({ SOLANA_NETWORK: "mainnet-beta", SOLANA_RPC_URL: "https://api.mainnet-beta.solana.com", TOKEN_MINT_ADDRESS: DEVNET_CONFIG.token.mintAddress });
     assert.equal(config.TOKEN_MINT_ADDRESS, "");
-    assert.equal(config.NETWORK_CONFIG.operatorWallet, null);
+    assert.equal(config.NETWORK_CONFIG.operatorWallet, MAINNET_PRODUCTION_WALLET);
     assert.equal(MAINNET_CONFIG.token.mintAddress, null);
   });
 
-  it("impone supply fijo no configurable de 1,000 AVI", () => {
+  it("separa emisión inicial de máximo permanente", () => {
     const config = loadConfig({ SOLANA_NETWORK: "mainnet-beta", TOKEN_SUPPLY: "999999" });
     assert.equal(config.TOKEN_SUPPLY, "1000");
-    assert.equal(MAINNET_FIXED_SUPPLY_BASE_UNITS, 1_000_000_000_000n);
-    assert.equal(config.NETWORK_CONFIG.maximumSupplyBaseUnits, MAINNET_FIXED_SUPPLY_BASE_UNITS);
+    assert.equal(MAINNET_INITIAL_LAUNCH_BASE_UNITS, 1_000_000_000_000n);
+    assert.equal(config.NETWORK_CONFIG.supplyPolicy.initialLaunchBaseUnits, MAINNET_INITIAL_LAUNCH_BASE_UNITS);
+    assert.equal(config.NETWORK_CONFIG.supplyPolicy.launchMintOperationsAllowed, 1);
+    assert.equal(config.NETWORK_CONFIG.supplyPolicy.permanentMaxSupplyBaseUnits, null);
+    assert.equal(config.NETWORK_CONFIG.supplyPolicy.mintAuthorityPolicy, "retained_temporarily");
   });
 
   it("fija el mint oficial y 6 decimales de USDC", () => {

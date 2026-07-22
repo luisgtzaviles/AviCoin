@@ -1,4 +1,5 @@
 export type SolanaNetwork = "devnet" | "mainnet-beta";
+export type MintAuthorityPolicy = "retained_temporarily" | "revoked";
 
 export interface NetworkConfig {
   readonly network: SolanaNetwork;
@@ -20,7 +21,13 @@ export interface NetworkConfig {
     readonly orcaWhirlpoolConfig: string;
   };
   readonly usdc: { readonly mint: string | null; readonly decimals: 6 };
-  readonly maximumSupplyBaseUnits: bigint;
+  readonly supplyPolicy: {
+    readonly initialLaunchSupply: bigint;
+    readonly initialLaunchBaseUnits: bigint;
+    readonly launchMintOperationsAllowed: 1;
+    readonly permanentMaxSupplyBaseUnits: bigint | null;
+    readonly mintAuthorityPolicy: MintAuthorityPolicy;
+  };
 }
 
 export type MainnetOperation =
@@ -33,4 +40,5 @@ export type MainnetOperation =
   | "increase-liquidity"
   | "decrease-liquidity"
   | "test-swap"
+  | "return-swap"
   | "close-position";

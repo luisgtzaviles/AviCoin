@@ -19,6 +19,7 @@
     "mainnet:create-metadata": "tsx scripts/mainnet/create-metadata.ts",
     "mainnet:mint-fixed-supply": "tsx scripts/mainnet/mint-fixed-supply.ts",
     "mainnet:revoke-mint-authority": "tsx scripts/mainnet/revoke-mint-authority.ts",
+    "mainnet:preflight-plan": "tsx scripts/mainnet/preflight-plan.ts --dry-run",
     "orca:detect-pool": "tsx scripts/orca/detect-pool.ts",
     "orca:quote-pool": "tsx scripts/orca/quote-pool.ts",
     "orca:create-pool": "tsx scripts/orca/create-pool.ts",

@@ -3,9 +3,15 @@ import { resolve } from "node:path";
 import { z } from "zod";
 
 const stateSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   network: z.literal("mainnet-beta"),
-  production_wallet: z.string().nullable(),
+  production_wallet: z.string().min(32),
+  initial_launch_supply: z.literal("1000"),
+  initial_launch_base_units: z.literal("1000000000000"),
+  launch_mint_operations_allowed: z.literal(1),
+  launch_mint_operations_completed: z.union([z.literal(0), z.literal(1)]),
+  permanent_max_supply: z.null(),
+  mint_authority_policy: z.enum(["retained_temporarily", "revoked"]),
   avi_mint: z.string().nullable(),
   metadata_pda: z.string().nullable(),
   avi_ata: z.string().nullable(),
@@ -19,6 +25,16 @@ const stateSchema = z.object({
   position_opened: z.boolean(),
   liquidity_added: z.boolean(),
   swaps_tested: z.boolean(),
+}).superRefine((state, context) => {
+  if (state.mint_authority_policy === "retained_temporarily" && state.mint_authority_revoked) {
+    context.addIssue({ code: "custom", message: "retained_temporarily exige mint_authority_revoked=false", path: ["mint_authority_revoked"] });
+  }
+  if (state.mint_authority_policy === "revoked" && !state.mint_authority_revoked) {
+    context.addIssue({ code: "custom", message: "revoked exige mint_authority_revoked=true", path: ["mint_authority_revoked"] });
+  }
+  if ((state.launch_mint_operations_completed === 1) !== state.supply_minted) {
+    context.addIssue({ code: "custom", message: "El contador de emisión y supply_minted deben coincidir", path: ["launch_mint_operations_completed"] });
+  }
 });
 
 export type MainnetLaunchState = z.infer<typeof stateSchema>;

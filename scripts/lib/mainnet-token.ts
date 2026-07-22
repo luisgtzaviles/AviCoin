@@ -12,14 +12,13 @@ import {
 } from "@solana/spl-token";
 import {
   Connection,
-  Keypair,
   PublicKey,
   SystemProgram,
   TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { MAINNET_FIXED_SUPPLY_BASE_UNITS } from "../../config/mainnet.js";
+import { MAINNET_INITIAL_LAUNCH_BASE_UNITS } from "../../config/mainnet.js";
 
 export interface MintSnapshot {
   readonly decimals: number;
@@ -80,7 +79,7 @@ export async function fixedSupplyPlan(
     ata,
     instructions: [
       createAssociatedTokenAccountIdempotentInstruction(operator, ata, operator, mint, TOKEN_PROGRAM_ID),
-      createMintToCheckedInstruction(mint, ata, operator, MAINNET_FIXED_SUPPLY_BASE_UNITS, 9, [], TOKEN_PROGRAM_ID),
+      createMintToCheckedInstruction(mint, ata, operator, MAINNET_INITIAL_LAUNCH_BASE_UNITS, 9, [], TOKEN_PROGRAM_ID),
     ],
   };
 }
@@ -92,7 +91,7 @@ export async function revokeMintAuthorityPlan(
 ): Promise<readonly TransactionInstruction[]> {
   const current = await getMint(connection, mint, "confirmed", TOKEN_PROGRAM_ID);
   if (current.mintAuthority === null) throw new Error("La mint authority ya es none; no se requiere ninguna acción.");
-  assertMintSnapshot(mintSnapshot(current), { authority: operator.toBase58(), supply: MAINNET_FIXED_SUPPLY_BASE_UNITS });
+  assertMintSnapshot(mintSnapshot(current), { authority: operator.toBase58(), supply: MAINNET_INITIAL_LAUNCH_BASE_UNITS });
   return [createSetAuthorityInstruction(mint, operator, AuthorityType.MintTokens, null, [], TOKEN_PROGRAM_ID)];
 }
 
@@ -115,18 +114,4 @@ export async function simulateUnsigned(
   const result = await connection.simulateTransaction(transaction, { sigVerify: false });
   if (result.value.err) throw new Error(`La simulación falló: ${JSON.stringify(result.value.err)}`);
   return result.value.logs ?? [];
-}
-
-export async function signAndSend(
-  connection: Connection,
-  payer: Keypair,
-  instructions: readonly TransactionInstruction[],
-  additionalSigners: readonly Keypair[] = [],
-): Promise<string> {
-  const transaction = await versionedTransaction(connection, payer.publicKey, instructions);
-  transaction.sign([payer, ...additionalSigners]);
-  const signature = await connection.sendTransaction(transaction, { maxRetries: 3, preflightCommitment: "confirmed" });
-  const confirmation = await connection.confirmTransaction(signature, "confirmed");
-  if (confirmation.value.err) throw new Error(`La transacción fue rechazada: ${JSON.stringify(confirmation.value.err)}`);
-  return signature;
 }

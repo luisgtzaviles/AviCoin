@@ -20,5 +20,11 @@ export const DEVNET_CONFIG = {
     orcaWhirlpoolConfig: "FcrweFY1G9HJAHG5inkGB6pKg1HZ6x9UC2WioAfWrGkR",
   },
   usdc: { mint: null, decimals: 6 },
-  maximumSupplyBaseUnits: 100_000_000_000_000_000n,
+  supplyPolicy: {
+    initialLaunchSupply: 100_000_000n,
+    initialLaunchBaseUnits: 100_000_000_000_000_000n,
+    launchMintOperationsAllowed: 1,
+    permanentMaxSupplyBaseUnits: null,
+    mintAuthorityPolicy: "retained_temporarily",
+  },
 } as const satisfies NetworkConfig;

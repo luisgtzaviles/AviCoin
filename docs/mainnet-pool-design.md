@@ -1,21 +1,17 @@
 # Diseño propuesto del pool Mainnet AVI/USDC
 
-Estado: **no creado**. El diseño es educativo y no constituye una recomendación de mercado.
+Estado: **no creado**. El diseño es educativo y no constituye recomendación ni garantía de mercado.
 
 | Parámetro | Valor |
 |---|---:|
-| Par | AVI / USDC oficial |
+| Par | AVI / USDC oficial `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
 | Precio económico inicial | 1 AVI = 0.01 USDC |
-| Precio inverso | 1 USDC = 100 AVI |
-| AVI | 9 decimales; máximo 1,000 AVI |
-| USDC | 6 decimales; máximo 10 USDC |
-| Fee tier seleccionado | 0.30% |
-| Tick spacing | 64 |
-| Rango educativo propuesto | 0.005–0.02 USDC por AVI |
-| Slippage máximo inicial | 1% (100 bps) |
-| Price impact máximo para prueba | 10% |
+| AVI / USDC máximos de depósito | 1,000 AVI / 10 USDC |
+| Fee tier / tick spacing | 0.30% / 64 |
+| Rango educativo | 0.005–0.02 USDC por AVI |
+| Slippage / price impact máximos | 1% / 10% |
 | Compra educativa máxima | 0.10 USDC |
 
-El SDK ordena canónicamente los mints. Si USDC resulta token A, el código invierte precios y decimales. Los ticks se redondean al tick spacing. Una posición concentrada puede consumir cantidades desiguales: la cotización debe reportar importes requeridos, remanentes, rentas, comisiones y número de transacciones inmediatamente antes del dry-run.
+El pool puede avanzar con `mint_authority_policy=retained_temporarily` si la autoridad on-chain coincide con la wallet de producción. También admite una política futura `revoked` si la autoridad es `none`; cualquier otro valor se rechaza. En ambos casos exige mint, metadata y única emisión confirmados, supply exacto de 1,000 AVI, 9 decimales, freeze authority `none`, USDC oficial, wallet exacta, ausencia de emisión adicional y ausencia de pool previo.
 
-Si existe un pool para el par y fee tier, la creación se detiene y no agrega liquidez. La venta de regreso sólo puede usar exactamente los AVI obtenidos en la compra educativa. No se hacen operaciones correctivas para restaurar precio.
+La autorización exacta de operación y un dry-run válido seguirán siendo necesarios cuando exista el adaptador Phantom. La autoridad retenida no garantiza supply fijo. Los costos de dos a tres tick arrays son el componente dominante: deben releerse antes de aprobar pool o posición. No se hacen swaps correctivos para restaurar precio.

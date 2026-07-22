@@ -16,7 +16,7 @@ export async function main(): Promise<void> {
   await runOrcaOperation("open-position", { pool: state.pool, lowerTick: design.lowerTick, upperTick: design.upperTick, maxTokenA: design.maxTokenA.toString(), maxTokenB: design.maxTokenB.toString(), slippageBps: design.slippageBps }, async (runtime) => {
     const plan = await openPositionInstructionsWithTickBounds(kitRpc(runtime.config.SOLANA_RPC_URL), address(state.pool as string), { tokenMaxA: design.maxTokenA, tokenMaxB: design.maxTokenB }, design.lowerTick, design.upperTick, {
       slippageToleranceBps: design.slippageBps,
-      funder: createNoopSigner(address(runtime.operator.publicKey.toBase58())),
+      funder: createNoopSigner(address(runtime.operator.toBase58())),
       whirlpoolDeployment: WhirlpoolDeployment.mainnet,
     });
     plannedPosition = plan.positionMint;

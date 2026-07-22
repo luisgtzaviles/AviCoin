@@ -1,25 +1,24 @@
 # Runbook de lanzamiento Mainnet AVICOIN
 
-Estado: preparación; **ningún paso transaccional ha sido ejecutado**. Cada operación requiere una aprobación separada, `ALLOW_MAINNET=true`, `AVICOIN_MAINNET_OPERATION=<operación exacta>`, dry-run fresco y confirmación interactiva.
+Estado: preparación unsigned; **ningún paso transaccional ha sido ejecutado**. `ALLOW_MAINNET=false` y la firma Phantom permanece pendiente.
 
-`--dry-run` simula y termina siempre sin firmar. Cuando un plan contiene signers efímeros (por ejemplo, una posición Orca), `--execute-after-dry-run` simula, escribe/verifica el recibo del hash exacto de las instrucciones y sólo entonces pide confirmación para ejecutar ese mismo plan en memoria. No debe usarse sin la aprobación final de esa operación.
+## Sesión actual permitida
 
-1. Designar wallet dedicada fuera del repositorio.
-2. Configurar únicamente su public key esperada y proveedor/ruta externa de firma.
-3. Depositar SOL mediante un procedimiento externo aprobado.
-4. Depositar exactamente el presupuesto autorizado, máximo 10 USDC oficiales.
-5. Ejecutar preflight read-only: genesis, RPC, balances, programas, estado y metadata HTTPS.
-6. Crear el mint de 9 decimales, supply 0 y freeze authority `none` (`create-mint`).
-7. Releer el mint, registrar dirección confirmada y crear metadata inmutable (`create-metadata`).
-8. Releer metadata y emitir una sola vez 1,000 AVI (`mint-fixed-supply`).
-9. Releer supply y revocar únicamente mint authority (`revoke-mint-authority`).
-10. Confirmar supply, decimales, authorities, metadata y ATA contra on-chain.
-11. Detectar pools y cotizar diseño AVI/USDC sin firmar.
-12. Crear pool sólo si no existe el par/fee tier (`create-pool`).
-13. Abrir posición en operación separada (`open-position`).
-14. Depositar liquidez sin exceder 1,000 AVI/10 USDC (`increase-liquidity`).
-15. Cotizar compra educativa máxima de 0.10 USDC y exigir price impact ≤10%.
-16. Ejecutarla sólo con segunda wallet autorizada (`test-swap`) y vender de regreso únicamente lo recibido.
-17. Releer y documentar firmas, slots, balances, invariantes, remanentes y estado final.
+1. Ejecutar `pnpm mainnet:preflight-plan`.
+2. Releer genesis, wallet, SOL, USDC oficial y metadata pública.
+3. Revisar el plan de diez pasos, sus hashes, cuentas, signers requeridos, dependencias, rentas, fees y condiciones de detención.
+4. No crear recibos de autorización, no firmar y no enviar.
 
-Ante timeout o resultado incierto, no se reintenta creando otro recurso: se conserva la dirección esperada, se consulta on-chain y se detiene. Nunca se confía sólo en el estado local.
+## Secuencia futura, sujeta a aprobación independiente
+
+1. Conectar Phantom y exigir exactamente `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
+2. Crear mint con 9 decimales, supply 0 y freeze authority `none`. El mint signer será efímero y sólo en memoria durante esa sesión; su secreto no se persiste ni se imprime.
+3. Esperar `finalized`, releer la dirección generada y detenerse ante cualquier resultado ambiguo. Nunca crear automáticamente un segundo mint.
+4. Crear metadata on-chain inmutable usando exclusivamente la URI pública aprobada y releerla.
+5. Crear ATA AVI de producción.
+6. Emitir una sola vez exactamente `1,000 AVI` sólo si supply es 0 y el contador de emisiones completadas es 0.
+7. Verificar que la mint authority permanece en la wallet de producción y freeze authority es `none`. La revocación no forma parte del lanzamiento; queda como operación futura separada.
+8. Detectar y cotizar el pool AVI/USDC oficial. Crear pool, posición y liquidez sólo después de que el gate on-chain completo pase.
+9. Cotizar una compra educativa máxima de `0.10 USDC` y su venta de regreso; cada envío requiere aprobación Phantom independiente.
+
+Ante timeout o resultado incierto se consulta la dirección previamente generada y se detiene. No se reintenta creando recursos alternativos. La retención de mint authority no garantiza un supply fijo y no habilita emisiones adicionales.

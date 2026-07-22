@@ -11,7 +11,7 @@ export async function main(): Promise<void> {
   await runOrcaOperation("close-position", { position: state.position, closeOnlyWhenFullyWithdrawn: true }, async (runtime) => {
     const plan = await closePositionInstructions(kitRpc(runtime.config.SOLANA_RPC_URL), address(state.position as string), {
       slippageToleranceBps: 100,
-      authority: createNoopSigner(address(runtime.operator.publicKey.toBase58())),
+      authority: createNoopSigner(address(runtime.operator.toBase58())),
       whirlpoolDeployment: WhirlpoolDeployment.mainnet,
     });
     if (plan.quote.liquidityDelta > 0n) throw new Error("La posición aún tiene liquidez; disminúyela mediante una operación separada antes de cerrar.");

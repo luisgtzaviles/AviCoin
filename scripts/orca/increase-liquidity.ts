@@ -15,7 +15,7 @@ export async function main(): Promise<void> {
   await runOrcaOperation("increase-liquidity", { position: state.position, maxTokenA: design.maxTokenA.toString(), maxTokenB: design.maxTokenB.toString(), slippageBps: design.slippageBps }, async (runtime) => {
     const plan = await increaseLiquidityInstructions(kitRpc(runtime.config.SOLANA_RPC_URL), address(state.position as string), { tokenMaxA: design.maxTokenA, tokenMaxB: design.maxTokenB }, {
       slippageToleranceBps: design.slippageBps,
-      authority: createNoopSigner(address(runtime.operator.publicKey.toBase58())),
+      authority: createNoopSigner(address(runtime.operator.toBase58())),
       whirlpoolDeployment: WhirlpoolDeployment.mainnet,
     });
     return plan.instructions;

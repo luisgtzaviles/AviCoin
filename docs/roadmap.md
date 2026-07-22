@@ -14,4 +14,4 @@ Mercados, listado, provisión de liquidez y promesas económicas están fuera de
 
 ## Preparación Mainnet (en curso)
 
-La preparación técnica agrega configuración separada, gates por operación, dry-run obligatorio, supply fijo propuesto de 1,000 AVI y módulos de cotización Orca. No equivale a un lanzamiento. Permanecen pendientes la publicación de metadata Mainnet, designación y fondeo de wallet, creación del mint, metadata on-chain, emisión, revocación, pool, posición y cualquier swap.
+La metadata Mainnet ya está publicada y la public key Phantom de producción fue designada y fondeada. La preparación técnica separa redes, genera un plan unsigned y fija una única emisión inicial propuesta de 1,000 AVI; el máximo permanente sigue sin definir y la mint authority se retendrá temporalmente. Esto no equivale a un lanzamiento. Permanecen pendientes el adaptador Phantom auditado, fondeo SOL adicional, mint, metadata on-chain, ATA, emisión, pool, posición y cualquier swap. La revocación queda como decisión futura, no como paso del lanzamiento actual.

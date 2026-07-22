@@ -1,5 +1,5 @@
 import { createMetadataAccountV3, findMetadataPda, mplTokenMetadata, safeFetchMetadataFromSeeds } from "@metaplex-foundation/mpl-token-metadata";
-import { base58, createNoopSigner, keypairIdentity, none, publicKey, signerIdentity, type Keypair as UmiKeypair, type PublicKey as UmiPublicKey } from "@metaplex-foundation/umi";
+import { createNoopSigner, none, publicKey, signerIdentity, type PublicKey as UmiPublicKey } from "@metaplex-foundation/umi";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -86,10 +86,4 @@ export async function simulateMetadataCreation(rpcUrl: string, wallet: string, m
   const result = await umi.rpc.simulateTransaction(transaction, { verifySignatures: false });
   if (result.err) throw new Error(`La simulación de metadata falló: ${JSON.stringify(result.err)}`);
   return `Simulación correcta (${result.logs?.length ?? 0} logs)`;
-}
-
-export async function sendMetadataCreation(rpcUrl: string, wallet: UmiKeypair, mintAddress: string): Promise<string> {
-  const umi = createUmi(rpcUrl).use(mplTokenMetadata()).use(keypairIdentity(wallet));
-  const result = await metadataBuilder(umi, publicKey(mintAddress)).sendAndConfirm(umi);
-  return base58.deserialize(result.signature)[0];
 }
