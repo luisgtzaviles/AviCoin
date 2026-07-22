@@ -4,7 +4,7 @@ Este orden es orientativo y no implica fechas, compromisos ni autorización para
 
 1. **Fase 0 — definición y seguridad:** alcance, riesgos, authorities, gestión externa de claves y revisión de scripts.
 2. **Fase 1 — pruebas locales/devnet:** validar configuración, obtener SOL de prueba por medios oficiales y ensayar con cantidades mínimas.
-3. **Fase 2 — creación del token:** crear el mint en devnet, registrar su dirección y verificar authorities; sin emisión automática.
+3. **Fase 2 — creación del token (mint devnet completado):** mint creado y registrado en devnet con authorities verificadas y sin emisión; cualquier despliegue en mainnet permanece pendiente.
 4. **Fase 3 — metadata y logo:** aprobar un logo original, publicar el JSON/activo externamente y asociar su URI.
 5. **Fase 4 — transferencias entre amigos:** emitir solo cantidades aprobadas, probar cuentas asociadas y transferencias.
 6. **Fase 5 — sitio informativo o faucet opcional:** evaluar controles contra abuso, costos y mantenimiento.

@@ -4,7 +4,7 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Solo existen documentación y scripts administrativos preparados para uso posterior. No se creó ningún mint, no se emitieron tokens y AVICOIN no existe en mainnet. La mint address está **Pendiente**. La licencia también está **pendiente de definir**.
+Existe un mint de pruebas en devnet, registrado en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La licencia está **pendiente de definir**.
 
 La propuesta inicial es: nombre `AVICOIN`, símbolo `AVI`, devnet, 9 decimales, supply de referencia de 100,000,000 AVI (no emitido), mint authority conservada inicialmente y freeze authority pendiente de decisión. Véanse [tokenomics](docs/tokenomics.md) y [roadmap](docs/roadmap.md).
 
@@ -65,9 +65,19 @@ Los argumentos `MINT` y `URI` pueden provenir de `.env`. Los comandos transaccio
 - No revoques authorities sin comprender que la acción es irreversible.
 - TBD: distribución y supply finales, freeze authority, momento de fijar supply, custodia, metadata/logo definitivos, licencia, utilidades y evaluación previa a mainnet.
 
-## Registro del mint
+## Despliegues
 
-| Red | Mint address | Estado |
-|---|---|---|
-| devnet | Pendiente | No creado |
-| mainnet-beta | Pendiente | Fuera del alcance actual |
+### Devnet
+
+- Mint address: `8gmaV76WHvxG4Bkp865ufxSwWPNGqa5nQA6Sj8NwRqyK`
+- Red: Solana devnet
+- Decimales: 9
+- Supply actual: 0 AVI
+- Mint authority: wallet de administración AVICOIN
+- Freeze authority: ninguna
+- Metadata: pendiente
+- Estado: mint de pruebas creado
+
+### Mainnet-beta
+
+Mint address: **Pendiente**. Mainnet permanece fuera del alcance actual; el mint de devnet no debe presentarse como un despliegue definitivo.
