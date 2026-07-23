@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AVICOIN · Phantom Mainnet Metadata</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">AVICOIN · MAINNET · CREATE-METADATA ONLY</p>
+      <h1>Metadata on-chain,<br><span>una sola vez.</span></h1>
+      <p class="lede">Plan estable sin blockhash final; después se prepara y simula un único mensaje fresco para la PDA canónica. No crea ATA ni modifica supply o autoridades.</p>
+    </header>
+    <section class="wallet-card" aria-labelledby="wallet-title">
+      <div><p class="label" id="wallet-title">Wallet Phantom autorizada</p><code>EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code></div>
+      <button id="connect" type="button">Connect Phantom</button>
+      <p id="execution-gate" class="gate">Sin conexión. ALLOW_MAINNET no se modifica desde la UI.</p>
+      <p id="status" role="status" data-tone="neutral">No se ejecutó ninguna operación.</p>
+    </section>
+    <section aria-labelledby="workflow-title">
+      <div class="section-heading"><div><p class="label">Flujo auditado</p><h2 id="workflow-title">Una metadata, una decisión</h2></div><span class="badge">create-metadata only</span></div>
+      <div class="workflow" role="group" aria-label="Controles create-metadata">
+        <button id="build" type="button" disabled><b>01</b> Build stable plan</button>
+        <button id="review" type="button" disabled><b>02</b> Review stable plan</button>
+      </div>
+      <div class="confirmation-panel">
+        <label for="confirmation-token">Token exacto de confirmación</label>
+        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="CONFIRMO-MAINNET-METADATA-PERMANENTE">
+        <label class="check"><input id="first-confirm" type="checkbox"> Confirmo Mainnet, mint y PDA exactos, URI metadata-mainnet.json, seller fee 0, mutable=true y ninguna emisión de AVI.</label>
+        <button id="prepare" type="button" disabled><b>03</b> Prepare fresh transaction + simulate</button>
+        <p id="validity" class="gate">Todavía no existe blockhash final.</p>
+        <dl id="prepare-gate" class="plan" aria-label="Condiciones del gate Prepare"></dl>
+        <button id="request-signature" type="button" disabled><b>04</b> Request immediate signature</button>
+        <p id="signature-validity" class="gate">Request signature bloqueado hasta una simulación revisada y válida.</p>
+        <dl id="signature-gate" class="plan" aria-label="Condiciones del gate Request signature"></dl>
+        <label class="check"><input id="send-confirm" type="checkbox" disabled> Confirmo el envío único del mismo mensaje metadata firmado.</label>
+        <div class="workflow final-actions">
+          <button id="send" type="button" disabled><b>05</b> Send immediately</button>
+          <button id="verify" type="button" disabled><b>06</b> Verify finalized state</button>
+          <button id="cancel" type="button" disabled>Cancel session</button>
+        </div>
+      </div>
+    </section>
+    <section class="plan-section" aria-labelledby="plan-title"><div class="section-heading"><div><p class="label">Plan estable</p><h2 id="plan-title">Metadata exacta, sin blockhash</h2></div></div><dl id="plan" class="plan"><div><dt>Estado</dt><dd>Ejecuta Build para obtener el plan.</dd></div></dl></section>
+    <section class="plan-section" aria-labelledby="fresh-title"><div class="section-heading"><div><p class="label">Ventana efímera</p><h2 id="fresh-title">Mensaje exacto recién simulado</h2></div></div><dl id="fresh-transaction" class="plan"><div><dt>Estado</dt><dd>Disponible después de Review y Prepare.</dd></div></dl></section>
+    <section class="blocked" aria-labelledby="blocked-title"><p class="label">Fuera de alcance</p><h2 id="blocked-title">Operaciones bloqueadas</h2><ul id="blocked-operations"></ul></section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

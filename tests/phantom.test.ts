@@ -43,6 +43,30 @@ describe("frontera Phantom no custodial", () => {
     assert.equal(/"\/api\/simulate"/u.test(source), false);
     assert.match(source, /maxRetries: 0/);
   });
+  it("el frontend metadata sólo firma manualmente create-metadata", async () => {
+    const frontend = await import(pathToFileURL(resolve("tools/phantom-metadata/app.js")).href) as {
+      deriveMetadataSignatureGate: (input: Record<string, unknown>) => { enabled: boolean };
+      isSendConfirmationEnabled: (input: Record<string, unknown>) => boolean;
+    };
+    const source = await readFile("tools/phantom-metadata/app.js", "utf8");
+    const html = await readFile("tools/phantom-metadata/index.html", "utf8");
+    const server = await readFile("scripts/phantom/metadata-server.ts", "utf8");
+    assert.match(source, /provider\.signTransaction/);
+    assert.equal(/signAndSendTransaction|provider\.sendTransaction/u.test(source), false);
+    assert.match(source, /create-metadata/);
+    assert.match(html, /ninguna emisión de AVI/);
+    assert.match(server, /server\.listen\(port, "127\.0\.0\.1"/);
+    assert.match(server, /maxRetries: 0/);
+    assert.match(source, /Prepare bloqueado por:/);
+    assert.match(source, /\["input", "change"\]/);
+    assert.match(server, /"\/api\/session-status"/);
+    const simulated = frontend.deriveMetadataSignatureGate({ busy: false, status: "simulated", serverStatus: "simulated", serverSessionMatches: true, stablePlanHashMatches: true, serverPlanReviewed: true, fresh: { simulation: { logs: [] }, messageHash: "hash", canRequestSignature: true }, tokenExact: true, firstConfirmationChecked: true, executionEnabled: true });
+    assert.equal(simulated.enabled, true);
+    assert.equal(frontend.isSendConfirmationEnabled({ busy: false, status: "simulated", serverStatus: "simulated", expectedSignature: null }), false);
+    assert.equal(frontend.isSendConfirmationEnabled({ busy: false, status: "signed", serverStatus: "signed", expectedSignature: "firma-esperada" }), true);
+    assert.match(source, /if \(!sendConfirmationEnabled\) elements\.sendConfirm\.checked = false/);
+    assert.match(source, /Request signature bloqueado por:/);
+  });
   it("el diagnóstico local sólo expone connect y no contiene primitivas transaccionales", async () => {
     const diagnostic = await import(pathToFileURL(resolve("tools/phantom/diagnostic.js")).href) as {
       PRODUCTION_WALLET: string;

@@ -44,8 +44,9 @@ describe("invariantes del token Mainnet", () => {
     assert.throws(() => assertInitialLaunchMintAllowed(baseState, MAINNET_INITIAL_LAUNCH_BASE_UNITS, 1n), /supply on-chain igual a cero/);
   });
 
-  it("metadata exige identidad, URI, fee cero e inmutabilidad", () => {
-    assert.doesNotThrow(() => assertMetadataSnapshot({ mint: wallet, name: "AVICOIN", symbol: "AVI", uri: "https://avicoin.avicell.com.mx/metadata-mainnet.json", sellerFeeBasisPoints: 0, isMutable: false }, wallet, "https://avicoin.avicell.com.mx/metadata-mainnet.json"));
-    assert.throws(() => assertMetadataSnapshot({ mint: wallet, name: "AVICOIN", symbol: "AVI", uri: "https://avicoin.avicell.com.mx/metadata-mainnet.json", sellerFeeBasisPoints: 0, isMutable: true }, wallet, "https://avicoin.avicell.com.mx/metadata-mainnet.json"), /inmutable/);
+  it("metadata exige identidad, URI, fee cero y mutable=true", () => {
+    const base = { mint: wallet, name: "AVICOIN", symbol: "AVI", uri: "https://avicoin.avicell.com.mx/metadata-mainnet.json", sellerFeeBasisPoints: 0, updateAuthority: wallet, hasCreators: false, hasCollection: false, hasUses: false };
+    assert.doesNotThrow(() => assertMetadataSnapshot({ ...base, isMutable: true }, wallet, "https://avicoin.avicell.com.mx/metadata-mainnet.json", wallet));
+    assert.throws(() => assertMetadataSnapshot({ ...base, isMutable: false }, wallet, "https://avicoin.avicell.com.mx/metadata-mainnet.json", wallet), /mutable/);
   });
 });
