@@ -46,6 +46,7 @@ describe("frontera Phantom no custodial", () => {
   it("el frontend metadata sólo firma manualmente create-metadata", async () => {
     const frontend = await import(pathToFileURL(resolve("tools/phantom-metadata/app.js")).href) as {
       deriveMetadataSignatureGate: (input: Record<string, unknown>) => { enabled: boolean };
+      diagnoseConfirmationToken: (input: unknown) => { matches: boolean; rawMatches: boolean; trimmedMatches: boolean; nfc: string; nfkc: string; nfkcMatches: boolean; firstDifference: string; condition: string };
       isSendConfirmationEnabled: (input: Record<string, unknown>) => boolean;
     };
     const source = await readFile("tools/phantom-metadata/app.js", "utf8");
@@ -57,14 +58,29 @@ describe("frontera Phantom no custodial", () => {
     assert.match(html, /ninguna emisión de AVI/);
     assert.match(server, /server\.listen\(port, "127\.0\.0\.1"/);
     assert.match(server, /maxRetries: 0/);
+    assert.match(server, /process\.once\("SIGINT", shutdown\)/);
+    assert.match(server, /process\.once\("SIGTERM", shutdown\)/);
+    assert.match(server, /await rm\(bundleDirectory/);
     assert.match(source, /Prepare bloqueado por:/);
     assert.match(source, /\["input", "change"\]/);
     assert.match(server, /"\/api\/session-status"/);
+    assert.match(server, /"\/api\/signature-aborted"/);
+    assert.match(source, /provider\.signTransaction/);
+    assert.match(source, /"\/api\/signature-aborted"/);
+    const exactToken = frontend.diagnoseConfirmationToken("CONFIRMO-MAINNET-METADATA-PERMANENTE");
+    assert.equal(exactToken.matches, true); assert.equal(exactToken.rawMatches, true);
+    const pastedToken = frontend.diagnoseConfirmationToken("  CONFIRMO-MAINNET-METADATA-PERMANENTE\n");
+    assert.equal(pastedToken.matches, false); assert.equal(pastedToken.rawMatches, false); assert.equal(pastedToken.trimmedMatches, true); assert.equal(pastedToken.nfc, "CONFIRMO-MAINNET-METADATA-PERMANENTE");
+    const compatibilityToken = frontend.diagnoseConfirmationToken("ＣONFIRMO-MAINNET-METADATA-PERMANENTE");
+    assert.equal(compatibilityToken.nfkc, "CONFIRMO-MAINNET-METADATA-PERMANENTE"); assert.equal(compatibilityToken.nfkcMatches, true); assert.equal(compatibilityToken.matches, false); assert.match(compatibilityToken.firstDifference, /U\+FF23/); assert.match(compatibilityToken.condition, /received === EXPECTED/);
     const simulated = frontend.deriveMetadataSignatureGate({ busy: false, status: "simulated", serverStatus: "simulated", serverSessionMatches: true, stablePlanHashMatches: true, serverPlanReviewed: true, fresh: { simulation: { logs: [] }, messageHash: "hash", canRequestSignature: true }, tokenExact: true, firstConfirmationChecked: true, executionEnabled: true });
     assert.equal(simulated.enabled, true);
     assert.equal(frontend.isSendConfirmationEnabled({ busy: false, status: "simulated", serverStatus: "simulated", expectedSignature: null }), false);
     assert.equal(frontend.isSendConfirmationEnabled({ busy: false, status: "signed", serverStatus: "signed", expectedSignature: "firma-esperada" }), true);
+    assert.equal(frontend.isSendConfirmationEnabled({ busy: true, status: "signed", serverStatus: "signed", expectedSignature: "firma-esperada" }), true);
     assert.match(source, /if \(!sendConfirmationEnabled\) elements\.sendConfirm\.checked = false/);
+    assert.match(source, /const explicitlyConfirmed = elements\.sendConfirm\.checked/);
+    assert.match(source, /const confirmationToken = elements\.token\.value/);
     assert.match(source, /Request signature bloqueado por:/);
   });
   it("el diagnóstico local sólo expone connect y no contiene primitivas transaccionales", async () => {

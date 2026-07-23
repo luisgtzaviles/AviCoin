@@ -169,6 +169,7 @@ export async function startMetadataPhantomServer(options: { readonly port?: numb
         if (url.pathname === "/api/prepare") { const value = strings(body, ["confirmationToken"]); json(response, 200, await coordinator.prepareFreshTransaction({ ...common, confirmationToken: value.confirmationToken as string, explicitlyConfirmed: body.explicitlyConfirmed === true })); return; }
         if (url.pathname === "/api/fresh-status") { json(response, 200, await coordinator.freshStatus(common)); return; }
         if (url.pathname === "/api/signing-payload") { const value = strings(body, ["confirmationToken"]); json(response, 200, await coordinator.signingPayload({ ...common, confirmationToken: value.confirmationToken as string, explicitlyConfirmed: body.explicitlyConfirmed === true })); return; }
+        if (url.pathname === "/api/signature-aborted") { json(response, 200, await coordinator.abortSignatureRequest(common)); return; }
         if (url.pathname === "/api/signed") { const value = strings(body, ["messageHash", "transactionBase64"]); json(response, 200, await coordinator.acceptSignedTransaction({ ...common, messageHash: value.messageHash as string, transactionBase64: value.transactionBase64 as string })); return; }
         if (url.pathname === "/api/send") { const value = strings(body, ["confirmationToken"]); json(response, 200, await coordinator.send({ ...common, confirmationToken: value.confirmationToken as string, explicitlyConfirmed: body.explicitlyConfirmed === true })); return; }
         if (url.pathname === "/api/verify") { json(response, 200, await coordinator.verifyFinalized(common)); return; }
@@ -182,13 +183,22 @@ export async function startMetadataPhantomServer(options: { readonly port?: numb
       response.end(content);
     } catch (error) { json(response, 409, { error: error instanceof Error ? error.message : "Error local inesperado." }); }
   });
-  server.on("close", () => void rm(bundleDirectory, { recursive: true, force: true }));
   await new Promise<void>((resolveListen, reject) => { server.once("error", reject); server.listen(port, "127.0.0.1", resolveListen); });
-  return { server, port, close: () => new Promise<void>((resolveClose, reject) => server.close((error) => error ? reject(error) : resolveClose())) };
+  return {
+    server,
+    port,
+    close: async () => {
+      await new Promise<void>((resolveClose, reject) => server.close((error) => error ? reject(error) : resolveClose()));
+      await rm(bundleDirectory, { recursive: true, force: true });
+    },
+  };
 }
 
 export async function main(): Promise<void> {
   const instance = await startMetadataPhantomServer();
+  const shutdown = () => { void instance.close().catch(reportFailure); };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
   console.log(`OPEN THIS URL MANUALLY IN YOUR NORMAL CHROME PROFILE`);
   console.log(`AVICOIN Phantom metadata: http://127.0.0.1:${instance.port}/`);
   console.log("No se solicita firma al iniciar. Única operación: create-metadata.");

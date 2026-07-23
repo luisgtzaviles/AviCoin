@@ -1,5 +1,5 @@
 import { createHash, createPublicKey, randomUUID, verify } from "node:crypto";
-import { PublicKey, TransactionMessage, VersionedTransaction, type VersionedMessage } from "@solana/web3.js";
+import { ComputeBudgetProgram, PublicKey, TransactionMessage, VersionedTransaction, type TransactionInstruction, type VersionedMessage } from "@solana/web3.js";
 import { MAINNET_CONFIG } from "../../config/index.js";
 import { MAINNET_METADATA_SHA256, MAINNET_METADATA_URI, createMainnetMetadataInstruction, type MetadataSnapshot, assertMetadataSnapshot } from "./mainnet-metadata.js";
 import { assertMintSnapshot, type MintSnapshot } from "./mainnet-token.js";
@@ -9,7 +9,10 @@ export const CREATE_METADATA_CONFIRMATION_TOKEN = "CONFIRMO-MAINNET-METADATA-PER
 export const CREATE_METADATA_SIGNATURE_BLOCK_HEIGHT_MARGIN = 40;
 export const CREATE_METADATA_SEND_BLOCK_HEIGHT_MARGIN = 20;
 export const CREATE_METADATA_ACCOUNT_SPACE_ESTIMATE = 679;
-export const CREATE_METADATA_APPROXIMATE_FEE_LAMPORTS = 5_000n;
+export const CREATE_METADATA_COMPUTE_UNIT_LIMIT = 200_000;
+export const CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 1_000n;
+export const CREATE_METADATA_MAX_PRIORITY_FEE_LAMPORTS = 200n;
+export const CREATE_METADATA_APPROXIMATE_FEE_LAMPORTS = 5_000n + CREATE_METADATA_MAX_PRIORITY_FEE_LAMPORTS;
 const METADATA_PROGRAM = MAINNET_CONFIG.programs.tokenMetadata;
 const MINT_ADDRESS = "GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC";
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
@@ -62,6 +65,9 @@ export interface MetadataPlan {
   readonly metadataPda: string;
   readonly metadataProgram: string;
   readonly instruction: "token-metadata:createMetadataAccountV3";
+  readonly computeUnitLimit: typeof CREATE_METADATA_COMPUTE_UNIT_LIMIT;
+  readonly computeUnitPriceMicroLamports: string;
+  readonly maximumPriorityFeeLamports: string;
   readonly instructionDataSha256: string;
   readonly name: "AVICOIN";
   readonly symbol: "AVI";
@@ -149,6 +155,14 @@ function stable(value: unknown): string {
 }
 
 function sha256(value: Uint8Array | string): string { return createHash("sha256").update(value).digest("hex"); }
+
+function metadataTransactionInstructions(instruction: TransactionInstruction): readonly TransactionInstruction[] {
+  return [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: CREATE_METADATA_COMPUTE_UNIT_LIMIT }),
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
+    instruction,
+  ];
+}
 
 function fingerprint(runtime: PhantomRuntimeAuthorization): string {
   return sha256(stable({ network: runtime.network, rpcUrl: runtime.rpcUrl, expectedGenesisHash: runtime.expectedGenesisHash, productionWallet: runtime.productionWallet, allowMainnet: runtime.allowMainnet, operation: runtime.operation ?? null }));
@@ -243,6 +257,9 @@ export class PhantomCreateMetadataCoordinator {
       operation: "create-metadata" as const, network: "mainnet-beta" as const, genesisHash: genesis, rpcHost: new URL(runtime.rpcUrl).hostname,
       payer: wallet.toBase58(), updateAuthority: wallet.toBase58(), mintAddress: mint.toBase58(), metadataPda,
       metadataProgram: METADATA_PROGRAM, instruction: "token-metadata:createMetadataAccountV3" as const,
+      computeUnitLimit: CREATE_METADATA_COMPUTE_UNIT_LIMIT as typeof CREATE_METADATA_COMPUTE_UNIT_LIMIT,
+      computeUnitPriceMicroLamports: CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS.toString(),
+      maximumPriorityFeeLamports: CREATE_METADATA_MAX_PRIORITY_FEE_LAMPORTS.toString(),
       instructionDataSha256: sha256(instruction.data), name: "AVICOIN" as const, symbol: "AVI" as const, uri: MAINNET_METADATA_URI as typeof MAINNET_METADATA_URI,
       sellerFeeBasisPoints: 0 as const, isMutable: true as const, creators: null, collection: null, uses: null,
       writableAccounts: instruction.keys.filter((key) => key.isWritable).map((key) => key.pubkey.toBase58()),
@@ -280,7 +297,7 @@ export class PhantomCreateMetadataCoordinator {
       const { metadataPda, instruction } = createMainnetMetadataInstruction(this.runtime().rpcUrl, wallet.toBase58(), session.plan.mintAddress);
       if (metadataPda !== session.plan.metadataPda || sha256(instruction.data) !== session.plan.instructionDataSha256) throw new Error("La instrucción metadata cambió respecto del plan estable.");
       const [balance, lifetime] = await Promise.all([this.rpc.getBalance(wallet), this.rpc.getLatestBlockhash()]);
-      const message = new TransactionMessage({ payerKey: wallet, recentBlockhash: lifetime.blockhash, instructions: [instruction] }).compileToV0Message();
+      const message = new TransactionMessage({ payerKey: wallet, recentBlockhash: lifetime.blockhash, instructions: [...metadataTransactionInstructions(instruction)] }).compileToV0Message();
       const fee = await this.rpc.getFeeForMessage(message);
       const rent = BigInt(session.plan.estimatedRentLamports);
       if (balance < rent + fee) throw new Error("Saldo insuficiente para la transacción metadata fresca.");
@@ -314,6 +331,25 @@ export class PhantomCreateMetadataCoordinator {
     if (!session.fresh) throw new Error("El mensaje fresco fue invalidado.");
     session.status = "signature_requested";
     return { transactionBase64: Buffer.from(session.fresh.transaction.serialize()).toString("base64"), messageHash: session.fresh.messageHash, planHash: session.plan.planHash };
+  }
+
+  async abortSignatureRequest(input: CommonInput): Promise<MetadataPublicSession> {
+    const session = await this.assertCurrent(input, ["signature_requested"]);
+    if (session.signature !== null || session.expectedSignature !== null || session.fresh?.signedTransaction) throw new Error("Existe evidencia de firma; no se revertirá la solicitud.");
+    const fresh = session.fresh;
+    if (!fresh) throw new Error("No existe mensaje fresco para recuperar.");
+    fresh.currentBlockHeight = await this.rpc.getBlockHeight();
+    const remaining = fresh.lastValidBlockHeight - fresh.currentBlockHeight;
+    if (remaining >= CREATE_METADATA_SIGNATURE_BLOCK_HEIGHT_MARGIN) {
+      session.status = "simulated";
+    } else {
+      session.fresh = null;
+      session.signature = null;
+      session.expectedSignature = null;
+      session.signatureInvalidated = false;
+      session.status = "plan_reviewed";
+    }
+    return publicSession(session);
   }
 
   async acceptSignedTransaction(input: CommonInput & { readonly messageHash: string; readonly transactionBase64: string }): Promise<MetadataPublicSession> {

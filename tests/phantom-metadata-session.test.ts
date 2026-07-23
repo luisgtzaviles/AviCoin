@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { Keypair, PublicKey, VersionedTransaction, type VersionedMessage } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey, VersionedTransaction, type VersionedMessage } from "@solana/web3.js";
 import { MAINNET_CONFIG } from "../config/index.js";
 import { MAINNET_METADATA_URI, createMainnetMetadataInstruction } from "../scripts/lib/mainnet-metadata.js";
 import {
   CREATE_METADATA_CONFIRMATION_TOKEN,
+  CREATE_METADATA_COMPUTE_UNIT_LIMIT,
+  CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS,
+  CREATE_METADATA_MAX_PRIORITY_FEE_LAMPORTS,
   CREATE_METADATA_SEND_BLOCK_HEIGHT_MARGIN,
   CREATE_METADATA_SIGNATURE_BLOCK_HEIGHT_MARGIN,
   PhantomCreateMetadataCoordinator,
@@ -43,8 +46,21 @@ class FakeRpc implements MetadataRpc {
   async getAccountOwner(address: PublicKey) { return address.toBase58() === this.metadataPda && this.metadataAvailable ? MAINNET_CONFIG.programs.tokenMetadata : null; }
   async getMinimumBalanceForRentExemption() { return 5_616_720n; }
   async getLatestBlockhash() { const value = this.lifetimes[Math.min(this.latestCalls, this.lifetimes.length - 1)]!; this.latestCalls += 1; return value; }
-  async getFeeForMessage(_message: VersionedMessage) { return 5_000n; }
-  async simulate(transaction: VersionedTransaction) { this.simulateCalls += 1; assert.equal(transaction.message.compiledInstructions.length, 1); this.onSimulate?.(); return { logs: ["Program log: metadata simulation"], unitsConsumed: 20_000 }; }
+  async getFeeForMessage(_message: VersionedMessage) { return 5_200n; }
+  async simulate(transaction: VersionedTransaction) {
+    this.simulateCalls += 1;
+    const instructions = transaction.message.compiledInstructions;
+    assert.equal(instructions.length, 3);
+    assert.equal(transaction.message.staticAccountKeys[instructions[0]!.programIdIndex]?.toBase58(), ComputeBudgetProgram.programId.toBase58());
+    assert.equal(transaction.message.staticAccountKeys[instructions[1]!.programIdIndex]?.toBase58(), ComputeBudgetProgram.programId.toBase58());
+    assert.equal(transaction.message.staticAccountKeys[instructions[2]!.programIdIndex]?.toBase58(), MAINNET_CONFIG.programs.tokenMetadata);
+    const limitData = Buffer.from(instructions[0]!.data);
+    const priceData = Buffer.from(instructions[1]!.data);
+    assert.equal(limitData.readUInt8(0), 2); assert.equal(limitData.readUInt32LE(1), CREATE_METADATA_COMPUTE_UNIT_LIMIT);
+    assert.equal(priceData.readUInt8(0), 3); assert.equal(priceData.readBigUInt64LE(1), CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS);
+    this.onSimulate?.();
+    return { logs: ["Program log: metadata simulation"], unitsConsumed: 20_000 };
+  }
   async getBlockHeight() { return this.blockHeight; }
   async sendRawTransaction(transaction: Uint8Array) { this.sent += 1; if (this.sendFails) throw new Error("timeout"); return solanaTransactionSignature(VersionedTransaction.deserialize(transaction)); }
   async confirmFinalized() { if (this.confirmFails) throw new Error("timeout"); }
@@ -87,6 +103,9 @@ describe("coordinador Phantom create-metadata", () => {
     assert.equal(session.freshTransaction, null); assert.equal(subject.rpc.latestCalls, 0); assert.equal(subject.rpc.simulateCalls, 0);
     assert.equal(session.plan.mintAddress, MINT); assert.equal(session.plan.metadataProgram, MAINNET_CONFIG.programs.tokenMetadata); assert.equal(session.plan.uri, MAINNET_METADATA_URI);
     assert.equal(session.plan.isMutable, true); assert.equal(session.plan.sellerFeeBasisPoints, 0); assert.equal(session.plan.creators, null);
+    assert.equal(session.plan.computeUnitLimit, CREATE_METADATA_COMPUTE_UNIT_LIMIT);
+    assert.equal(session.plan.computeUnitPriceMicroLamports, CREATE_METADATA_COMPUTE_UNIT_PRICE_MICROLAMPORTS.toString());
+    assert.equal(session.plan.maximumPriorityFeeLamports, CREATE_METADATA_MAX_PRIORITY_FEE_LAMPORTS.toString());
   });
 
   it("rechaza wallet, red, genesis y operación incorrectos", async () => {
@@ -107,10 +126,19 @@ describe("coordinador Phantom create-metadata", () => {
     await assert.rejects(subject.coordinator.prepareFreshTransaction({ ...common(subject, built), confirmationToken: CREATE_METADATA_CONFIRMATION_TOKEN, explicitlyConfirmed: true }), /Transición inválida/);
     const review = await subject.coordinator.review(common(subject, built));
     await assert.rejects(subject.coordinator.prepareFreshTransaction({ ...common(subject, review), confirmationToken: "incorrecto", explicitlyConfirmed: true }), /Token/);
+    const compatibilityVariant = CREATE_METADATA_CONFIRMATION_TOKEN.replace("C", "Ｃ");
+    assert.equal(compatibilityVariant.normalize("NFKC"), CREATE_METADATA_CONFIRMATION_TOKEN);
+    await assert.rejects(subject.coordinator.prepareFreshTransaction({ ...common(subject, review), confirmationToken: compatibilityVariant, explicitlyConfirmed: true }), /Token/);
     await assert.rejects(subject.coordinator.prepareFreshTransaction({ ...common(subject, review), confirmationToken: CREATE_METADATA_CONFIRMATION_TOKEN, explicitlyConfirmed: false }), /Confirma Mainnet/);
   });
 
-  it("Prepare usa latest blockhash y simula una única instrucción", async () => {
+  it("rechaza whitespace exterior y no firma ni envía", async () => {
+    const subject = fixture(); const review = await reviewed(subject);
+    await assert.rejects(subject.coordinator.prepareFreshTransaction({ ...common(subject, review), confirmationToken: `\n ${CREATE_METADATA_CONFIRMATION_TOKEN}\t`, explicitlyConfirmed: true }), /Token/);
+    assert.equal(subject.rpc.sent, 0); assert.equal(subject.rpc.latestCalls, 0);
+  });
+
+  it("Prepare usa latest blockhash y simula presupuesto determinístico más metadata", async () => {
     const subject = fixture();
     const reviewedSession = await reviewed(subject);
     assert.equal(subject.coordinator.diagnostics().planReviewed, true);
@@ -123,6 +151,7 @@ describe("coordinador Phantom create-metadata", () => {
     assert.equal(session.status, "simulated"); assert.equal(subject.rpc.latestCalls, 1); assert.equal(subject.rpc.simulateCalls, 1);
     assert.equal(session.planReviewed, true); assert.equal(subject.coordinator.diagnostics().planReviewed, true); assert.equal(subject.rpc.sent, 0);
     assert.equal(session.freshTransaction?.blockhash, subject.rpc.lifetimes[0]!.blockhash); assert.equal(session.freshTransaction?.stablePlanHash, session.plan.planHash);
+    assert.equal(session.freshTransaction?.feeLamports, "5200");
   });
 
   it("polling conserva Review autoritativo después de simulación sin firmar ni enviar", async () => {
@@ -131,6 +160,24 @@ describe("coordinador Phantom create-metadata", () => {
     assert.equal(polled.status, "simulated"); assert.equal(polled.planReviewed, true);
     assert.equal(subject.coordinator.diagnostics().planReviewed, true);
     assert.equal(subject.rpc.sent, 0); assert.equal(polled.signature, null); assert.equal(polled.expectedSignature, null);
+  });
+
+  it("revierte signature_requested a simulated cuando Phantom no devuelve firma", async () => {
+    const subject = fixture(); const session = await prepared(subject);
+    await subject.coordinator.signingPayload({ ...common(subject, session), confirmationToken: CREATE_METADATA_CONFIRMATION_TOKEN, explicitlyConfirmed: true });
+    assert.equal(subject.coordinator.diagnostics().status, "signature_requested");
+    const recovered = await subject.coordinator.abortSignatureRequest(common(subject, session));
+    assert.equal(recovered.status, "simulated"); assert.equal(recovered.planReviewed, true); assert.notEqual(recovered.freshTransaction, null);
+    assert.equal(recovered.signature, null); assert.equal(recovered.expectedSignature, null); assert.equal(subject.rpc.sent, 0);
+  });
+
+  it("invalida el mensaje si Phantom no firma y ya no existe margen", async () => {
+    const subject = fixture(); const session = await prepared(subject);
+    await subject.coordinator.signingPayload({ ...common(subject, session), confirmationToken: CREATE_METADATA_CONFIRMATION_TOKEN, explicitlyConfirmed: true });
+    subject.rpc.blockHeight = subject.rpc.lifetimes[0]!.lastValidBlockHeight - CREATE_METADATA_SIGNATURE_BLOCK_HEIGHT_MARGIN + 1;
+    const recovered = await subject.coordinator.abortSignatureRequest(common(subject, session));
+    assert.equal(recovered.status, "plan_reviewed"); assert.equal(recovered.planReviewed, true); assert.equal(recovered.freshTransaction, null);
+    assert.equal(recovered.signature, null); assert.equal(recovered.expectedSignature, null); assert.equal(subject.rpc.sent, 0);
   });
 
   it("refresh previo conserva plan/PDA e invalida firma", async () => {
