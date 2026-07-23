@@ -1,6 +1,6 @@
 # AVICOIN Mainnet Readiness
 
-Estado: **adaptador Phantom `create-mint` implementado y validado; ningún recurso Mainnet creado**.
+Estado: **mint Mainnet creado y verificado; metadata, ATA, supply y recursos Orca pendientes**.
 
 ## Preparado y validado
 
@@ -11,7 +11,8 @@ Estado: **adaptador Phantom `create-mint` implementado y validado; ningún recur
 - Supply máximo permanente: `null` / undecided. No existe autorización para emisiones posteriores en la etapa actual.
 - Mint authority: `retained_temporarily`; freeze authority: `none` permanentemente.
 - El gate del pool admite `retained_temporarily` y la política futura `revoked`, pero exige invariantes on-chain exactas y rechaza cualquier política desconocida.
-- `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones y firmas: 0.
+- Mint definitivo: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`, creado en slot `434607364` y releído en `finalized` con owner SPL Token Program, 9 decimales, supply 0, mint authority de producción y freeze authority `none`.
+- `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones Mainnet: 1; firmas Phantom: 1. `create-mint` no debe repetirse.
 - Servidor limitado a `127.0.0.1`, UI autocontenida sin CDN, CSP local y proveedor oficial `window.phantom.solana`.
 - Flujo separado `Build stable plan → Review → confirmación → Prepare fresh transaction / Simulate → Request signature → Send → Verify finalized state`, con token efímero y dos confirmaciones explícitas.
 - Keypair del mint generado sólo en memoria; únicamente su dirección pública y hashes pueden conservarse para resolver un estado ambiguo.
@@ -19,12 +20,12 @@ Estado: **adaptador Phantom `create-mint` implementado y validado; ningún recur
 - El mensaje firmable no se entrega antes de una simulación fresca. Se exigen 40 block heights para solicitar firma y 20 para aceptar/enviar; el servidor verifica las firmas de Phantom y del mint contra el mismo mensaje, blockhash y plan.
 - Un refresh sólo está permitido antes de `send_locked`: invalida firma y mensaje anteriores, pero nunca regenera el mint. Tras contactar el RPC o quedar ambiguo se bloquean refresh, reenvío y mint sustituto.
 
-## Preflight read-only y costos observados
+## Preflight y costo observado
 
-El preflight SDK del 2026-07-22 releyó `0.071933519 SOL`, `10.89983 USDC` oficial, genesis y metadata. El cálculo de rentas por tamaños de cuenta estima `0.167431040 SOL` mínimo y `0.239907680 SOL` máximo antes de margen. Con margen recomendado de 25%, el techo es `0.299884600 SOL`; el saldo quedaría en `-0.227951081 SOL`, por lo que **se requiere más SOL antes de cualquier lanzamiento**. Los tick arrays dominan la estimación y deben recotizarse según cuentas ya existentes.
+El preflight SDK del 2026-07-22 releyó `0.339564219 SOL`, `10.89983 USDC` oficial, genesis y metadata pública exacta. Create-mint consumió `0.001471600 SOL`: `0.001461600 SOL` de renta y `0.000010000 SOL` de fee. El saldo final verificado fue `0.338092619 SOL`. Los costos de operaciones posteriores deben recotizarse antes de cualquier autorización independiente.
 
 ## Alcance operativo
 
-Sólo `create-mint` tiene adaptador. `create-metadata`, `mint-fixed-supply`, pool, posición, liquidez y swaps continúan bloqueados. El proceso local no lee `.env`: una ejecución futura autorizada debe recibir `ALLOW_MAINNET=true`, `AVICOIN_MAINNET_OPERATION=create-mint` y un token de confirmación de al menos 16 caracteres únicamente como variables de esa sesión. La configuración persistente continúa en `ALLOW_MAINNET=false`.
+La operación `create-mint` concluyó y no debe ejecutarse nuevamente. `create-metadata`, `mint-fixed-supply`, pool, posición, liquidez y swaps continúan bloqueados y requieren autorizaciones futuras separadas. La configuración persistente continúa en `ALLOW_MAINNET=false`.
 
-Después del envío no existe reintento automático. Se espera `finalized`, se verifica owner SPL Token Program, 9 decimales, supply 0, mint authority exacta y freeze authority `none`; sólo entonces se actualiza el estado público. Un timeout conserva una ficha pública ignorada por Git con dirección esperada, firma y hashes, bloquea un segundo mint y exige resolución manual. Mint, metadata on-chain, ATA AVI, supply, pool, posición y swaps permanecen sin crear.
+La verificación final confirmó exactamente dos instrucciones —System Program `createAccount` y SPL Token `initializeMint2`— y ningún error. Metadata PDA y ATA de producción no existen; AVI emitidos, pool, posición y swaps permanecen en cero. La evidencia completa está en [mainnet-token.md](mainnet-token.md).

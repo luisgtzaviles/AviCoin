@@ -4,7 +4,7 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. No se emitieron tokens y AVICOIN no existe en mainnet. La wallet pública de producción ya fue designada y fondeada, pero todavía no hay mint, metadata on-chain, ATA AVI, pool ni posición Mainnet. La licencia está **pendiente de definir**.
+Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. En Mainnet se creó exclusivamente el mint SPL definitivo, todavía con supply 0 y sin metadata on-chain, ATA AVI, pool ni posición. La licencia está **pendiente de definir**.
 
 El registro histórico de devnet usa nombre `AVICOIN`, símbolo `AVI`, 9 decimales y supply 0. La política Mainnet vigente es distinta y está documentada en [tokenomics](docs/tokenomics.md) y [readiness](docs/mainnet-readiness.md).
 
@@ -112,16 +112,18 @@ La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-t
 
 ### Mainnet-beta
 
-Estado: **Mainnet preparation in progress / no Mainnet token created**.
+Estado: **mint Mainnet creado y verificado / supply 0 / lanzamiento incompleto**.
 
 - Wallet de producción Phantom: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq` (sólo public key).
-- Mint address: pendiente.
+- Mint address: [`GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`](https://explorer.solana.com/address/GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC).
+- Transacción create-mint: [`4nhedBupr9cpyFh3ZFKrUboGaDHnnuCRdtCvyPBsidAX1Smk79hVtmXK8snr8jhUGbYYQZMWKWTg7Q4qWM7UegkH`](https://explorer.solana.com/tx/4nhedBupr9cpyFh3ZFKrUboGaDHnnuCRdtCvyPBsidAX1Smk79hVtmXK8snr8jhUGbYYQZMWKWTg7Q4qWM7UegkH).
+- Decimales: 9; supply actual: 0 AVI.
 - Supply inicial autorizado: una sola operación `mintTo` de exactamente 1,000 AVI cuando supply sea 0.
 - Supply máximo permanente: no definido (`null`). No se autoriza emisión adicional en esta etapa.
 - Freeze authority: ninguna.
 - Mint authority: retenida temporalmente por la wallet de producción; esto no garantiza supply fijo ni autoriza nuevas emisiones.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
 - Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, publicada y verificada por SHA-256. La metadata on-chain continúa pendiente.
-- Estado de seguridad: adaptador `create-mint` implementado; `ALLOW_MAINNET=false`; firmas solicitadas: 0; transacciones Mainnet ejecutadas: 0.
+- Estado de seguridad: `create-mint` finalizado una vez; `ALLOW_MAINNET=false`; firmas Phantom: 1; transacciones Mainnet: 1. No se autoriza repetir create-mint.
 
-El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).
+La evidencia exacta está en [mainnet-token](docs/mainnet-token.md). El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

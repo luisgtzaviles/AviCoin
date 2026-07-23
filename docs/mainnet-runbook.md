@@ -1,6 +1,8 @@
 # Runbook de lanzamiento Mainnet AVICOIN
 
-Estado: adaptador Phantom disponible sólo para `create-mint`; **ninguna firma ni transacción Mainnet ha sido ejecutada**. La configuración persistente conserva `ALLOW_MAINNET=false`.
+Estado: `create-mint` fue ejecutado una sola vez y finalizó correctamente el 2026-07-22. La configuración persistente conserva `ALLOW_MAINNET=false`; **no repetir create-mint**.
+
+Mint definitivo: [`GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`](https://explorer.solana.com/address/GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC). Evidencia: [mainnet-token.md](mainnet-token.md).
 
 ## Diagnóstico local de conexión Phantom
 
@@ -17,9 +19,9 @@ Estado: adaptador Phantom disponible sólo para `create-mint`; **ninguna firma n
 4. Confirmar que la wallet sea `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
 5. Usar `Build stable plan` y `Review stable plan`. El plan no obtiene blockhash ni construye todavía el mensaje final. `Prepare fresh transaction`, `Request signature` y `Send` deben permanecer deshabilitados.
 
-## Sesión futura expresamente autorizada
+## Procedimiento histórico de la sesión autorizada
 
-No guardar estas variables en `.env`, archivos o historial compartido. Para una ejecución aprobada, establecer únicamente durante la vida del proceso:
+Estas variables se establecieron únicamente durante la vida del proceso y no se guardaron en `.env`:
 
 - `SOLANA_NETWORK=mainnet-beta`;
 - RPC Mainnet HTTPS sin credenciales;
@@ -27,9 +29,9 @@ No guardar estas variables en `.env`, archivos o historial compartido. Para una 
 - `ALLOW_MAINNET=true`;
 - `AVICOIN_CONFIRMATION_TOKEN=CONFIRMO-MAINNET-RECURSO-PERMANENTE`, únicamente como autorización efímera del proceso.
 
-Detener el proceso al concluir para retirar la autorización.
+El proceso fue detenido después de `finalized`, retirando la autorización. Este bloque queda como evidencia operativa y no autoriza una segunda ejecución.
 
-## Flujo manual obligatorio
+## Flujo manual ejecutado
 
 1. **Connect**: Phantom solicita únicamente compartir la public key. No se firma nada.
 2. **Build stable plan**: el servidor relee estado, genesis y balance; genera una sola vez el keypair de mint en memoria; y muestra la public key propuesta, programas, instrucciones, cuentas, signers, renta, fee aproximado y hash canónico. Todavía no obtiene blockhash ni mensaje final.
