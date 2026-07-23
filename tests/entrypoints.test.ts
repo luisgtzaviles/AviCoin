@@ -13,6 +13,7 @@ const entrypoints = [
   "../scripts/mainnet/preflight-plan.js",
   "../scripts/phantom/server.js",
   "../scripts/phantom/metadata-server.js",
+  "../scripts/phantom/ata-server.js",
   "../scripts/phantom/diagnostic-server.js",
   "../scripts/orca/detect-pool.js",
   "../scripts/orca/quote-pool.js",

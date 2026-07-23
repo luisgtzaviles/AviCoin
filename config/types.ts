@@ -33,6 +33,7 @@ export interface NetworkConfig {
 export type MainnetOperation =
   | "create-mint"
   | "create-metadata"
+  | "create-ata"
   | "mint-fixed-supply"
   | "revoke-mint-authority"
   | "create-pool"

@@ -15,6 +15,7 @@ const stateSchema = z.object({
   avi_mint: z.string().nullable(),
   metadata_pda: z.string().nullable(),
   avi_ata: z.string().nullable(),
+  ata_created: z.boolean().optional().default(false),
   pool: z.string().nullable(),
   position: z.string().nullable(),
   mint_created: z.boolean(),
@@ -34,6 +35,9 @@ const stateSchema = z.object({
   }
   if ((state.launch_mint_operations_completed === 1) !== state.supply_minted) {
     context.addIssue({ code: "custom", message: "El contador de emisión y supply_minted deben coincidir", path: ["launch_mint_operations_completed"] });
+  }
+  if (state.ata_created !== (state.avi_ata !== null)) {
+    context.addIssue({ code: "custom", message: "ata_created y avi_ata deben representar el mismo estado", path: ["ata_created"] });
   }
 });
 

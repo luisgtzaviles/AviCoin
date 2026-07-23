@@ -1,6 +1,6 @@
 # AVICOIN Mainnet Mint
 
-Estado: **create-mint finalized; metadata on-chain creada; supply 0; ATA y operaciones de emisión no ejecutadas**.
+Estado: **create-mint, metadata y ATA finalized; supply 0; operaciones de emisión no ejecutadas**.
 
 ## Identidad y transacción
 
@@ -40,11 +40,37 @@ Estado: **create-mint finalized; metadata on-chain creada; supply 0; ATA y opera
 ## Alcance preservado
 
 - Metadata on-chain: creada y verificada en la PDA `4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`. Véase [mainnet-metadata.md](mainnet-metadata.md).
-- ATA AVI de producción: no creada. Dirección derivada `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`, cuenta inexistente al verificar.
+- ATA AVI de producción: creada y verificada en `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`.
 - AVI emitidos: 0.
 - Mint authority revocada: no.
 - Pool, posición, liquidez y swaps: no creados ni ejecutados.
-- Firmas Phantom acumuladas: 2 (`create-mint` y `create-metadata`).
-- Transacciones Mainnet acumuladas: 2.
+- Firmas Phantom acumuladas: 3 (`create-mint`, `create-metadata` y `create-ata`).
+- Transacciones Mainnet acumuladas: 3.
+
+## Associated Token Account oficial
+
+- ATA: [`H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`](https://explorer.solana.com/address/H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE).
+- Firma: [`1Dqyd5tV4CnaQSPDydrLRaN5pgDUjMwGGEY2Yah6trt259ETZQdLKzsL2LyTqHPipGNwhiu1X5BqC72fU1CteeH`](https://explorer.solana.com/tx/1Dqyd5tV4CnaQSPDydrLRaN5pgDUjMwGGEY2Yah6trt259ETZQdLKzsL2LyTqHPipGNwhiu1X5BqC72fU1CteeH).
+- Estado: `finalized`, sin error.
+- Slot: `434624296`.
+- Fecha UTC: `2026-07-23T01:54:08.000Z`.
+- Owner del ATA: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
+- Mint del ATA: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`.
+- Owner del programa: `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`.
+- Balance: `0` unidades base / `0 AVI`.
+- Instrucciones: dos Compute Budget y exactamente una `associated-token:createIdempotent`; ninguna instrucción `mintTo`.
+- Stable plan hash: `051d52928454030b5c1a67fd42ed2f759207dc7c4bb5f5e3a074fe071832db82`.
+- Message hash: `8d107328f3f465d3b4a56de2d33e980a066c69c309f98347f8ca10dfe33a6b35`.
+- Blockhash: `21NrqrzxeateAuwJrNDU357Pt7EmiFjdPTo9tZAC6HET`.
+- Last valid block height: `412684689`.
+- SOL antes: `0.322971819 SOL` / `322,971,819` lamports.
+- SOL después: `0.320927439 SOL` / `320,927,439` lamports.
+- Renta: `0.002039280 SOL` / `2,039,280` lamports.
+- Fee: `0.000005100 SOL` / `5,100` lamports.
+- Costo total: `0.002044380 SOL` / `2,044,380` lamports.
+- Supply releído después: `0` unidades base / `0 AVI`.
+- Mint authority: sin cambios, wallet de producción.
+- Freeze authority: `none`.
+- Metadata: sin cambios; PDA, nombre, símbolo, URI, seller fee, mutabilidad y update authority exactos.
 
 El servidor loopback fue detenido después de `finalized`; el keypair del mint existió sólo en memoria del proceso y no fue persistido. Los recovery públicos finalizados fueron eliminados durante cada cierre. Esta evidencia no autoriza emisión ni ninguna operación posterior.

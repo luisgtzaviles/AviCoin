@@ -84,6 +84,19 @@ export async function fixedSupplyPlan(
   };
 }
 
+export async function createAtaPlan(
+  connection: Connection,
+  operator: PublicKey,
+  mint: PublicKey,
+): Promise<{ readonly ata: PublicKey; readonly instruction: TransactionInstruction }> {
+  await fetchAndAssertMint(connection, mint, { authority: operator.toBase58(), supply: 0n });
+  const ata = getAssociatedTokenAddressSync(mint, operator, false, TOKEN_PROGRAM_ID);
+  return {
+    ata,
+    instruction: createAssociatedTokenAccountIdempotentInstruction(operator, ata, operator, mint, TOKEN_PROGRAM_ID),
+  };
+}
+
 export async function revokeMintAuthorityPlan(
   connection: Connection,
   operator: PublicKey,

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AVICOIN · Phantom Mainnet ATA</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">AVICOIN · MAINNET · CREATE-ATA ONLY</p>
+      <h1>ATA oficial,<br><span>balance cero.</span></h1>
+      <p class="lede">Crea exclusivamente la cuenta asociada canónica de la wallet de producción. No contiene mintTo, no emite AVI y no modifica autoridades ni metadata.</p>
+    </header>
+    <section class="wallet-card">
+      <div><p class="label">Wallet Phantom autorizada</p><code>EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code></div>
+      <button id="connect" type="button">Connect Phantom</button>
+      <p id="execution-gate" class="gate">Sin conexión. ALLOW_MAINNET no se modifica desde la UI.</p>
+      <p id="status" role="status" data-tone="neutral">No se ejecutó ninguna operación.</p>
+    </section>
+    <section>
+      <div class="section-heading"><div><p class="label">Flujo auditado</p><h2>Una ATA, ninguna emisión</h2></div><span class="badge">create-ata only</span></div>
+      <div class="workflow">
+        <button id="build" type="button" disabled><b>01</b> Build stable plan</button>
+        <button id="review" type="button" disabled><b>02</b> Review stable plan</button>
+      </div>
+      <div class="confirmation-panel">
+        <label for="confirmation-token">Token exacto de confirmación</label>
+        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="CONFIRMO-MAINNET-CREAR-ATA-OFICIAL">
+        <label class="check"><input id="first-confirm" type="checkbox"> Confirmo Mainnet, wallet, mint y ATA exactos; balance y supply permanecerán en 0 AVI.</label>
+        <button id="prepare" type="button" disabled><b>03</b> Prepare fresh transaction + simulate</button>
+        <p id="prepare-validity" class="gate">Todavía no existe blockhash final.</p>
+        <dl id="prepare-gate" class="plan"></dl>
+        <button id="request-signature" type="button" disabled><b>04</b> Request immediate signature</button>
+        <p id="signature-validity" class="gate">Firma bloqueada hasta simulación válida.</p>
+        <label class="check"><input id="send-confirm" type="checkbox" disabled> Confirmo el envío único del mismo mensaje firmado que sólo crea el ATA.</label>
+        <div class="workflow final-actions">
+          <button id="send" type="button" disabled><b>05</b> Send immediately</button>
+          <button id="verify" type="button" disabled><b>06</b> Verify finalized state</button>
+          <button id="cancel" type="button" disabled>Cancel session</button>
+        </div>
+      </div>
+    </section>
+    <section class="plan-section"><div class="section-heading"><div><p class="label">Plan estable</p><h2>ATA canónica, sin blockhash</h2></div></div><dl id="plan" class="plan"><div><dt>Estado</dt><dd>Ejecuta Build.</dd></div></dl></section>
+    <section class="plan-section"><div class="section-heading"><div><p class="label">Ventana efímera</p><h2>Mensaje exacto recién simulado</h2></div></div><dl id="fresh-transaction" class="plan"><div><dt>Estado</dt><dd>Disponible después de Prepare.</dd></div></dl></section>
+    <section class="blocked"><p class="label">Fuera de alcance</p><h2>Operaciones bloqueadas</h2><ul id="blocked-operations"></ul></section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

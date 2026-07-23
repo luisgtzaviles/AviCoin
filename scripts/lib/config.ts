@@ -8,7 +8,7 @@ const httpUrl = z.url().refine((value) => {
 }, "Debe ser una URL HTTP(S) sin credenciales embebidas");
 
 const operation = z.enum([
-  "create-mint", "create-metadata", "mint-fixed-supply", "revoke-mint-authority",
+  "create-mint", "create-metadata", "create-ata", "mint-fixed-supply", "revoke-mint-authority",
   "create-pool", "open-position", "increase-liquidity", "decrease-liquidity",
   "test-swap", "return-swap", "close-position",
 ]);

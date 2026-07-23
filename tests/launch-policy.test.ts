@@ -8,7 +8,7 @@ const state: MainnetLaunchState = {
   schema_version: 2, network: "mainnet-beta", production_wallet: MAINNET_PRODUCTION_WALLET,
   initial_launch_supply: "1000", initial_launch_base_units: "1000000000000", launch_mint_operations_allowed: 1,
   launch_mint_operations_completed: 1, permanent_max_supply: null, mint_authority_policy: "retained_temporarily",
-  avi_mint: "8gmaV76WHvxG4Bkp865ufxSwWPNGqa5nQA6Sj8NwRqyK", metadata_pda: "metadata", avi_ata: "ata", pool: null, position: null,
+  avi_mint: "8gmaV76WHvxG4Bkp865ufxSwWPNGqa5nQA6Sj8NwRqyK", metadata_pda: "metadata", avi_ata: "ata", ata_created: true, pool: null, position: null,
   mint_created: true, metadata_created: true, supply_minted: true, mint_authority_revoked: false, pool_created: false,
   position_opened: false, liquidity_added: false, swaps_tested: false,
 };
