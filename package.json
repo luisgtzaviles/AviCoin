@@ -24,6 +24,7 @@
     "phantom:metadata": "tsx scripts/phantom/metadata-server.ts",
     "phantom:ata": "tsx scripts/phantom/ata-server.ts",
     "phantom:supply": "tsx scripts/phantom/supply-server.ts",
+    "phantom:final-supply": "tsx scripts/phantom/final-supply-server.ts",
     "phantom:diagnose": "tsx scripts/phantom/diagnostic-server.ts",
     "orca:detect-pool": "tsx scripts/orca/detect-pool.ts",
     "orca:quote-pool": "tsx scripts/orca/quote-pool.ts",

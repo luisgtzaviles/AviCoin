@@ -4,7 +4,7 @@ AVICOIN es una base educativa para preparar un token SPL de Solana orientado ini
 
 ## Estado actual
 
-Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. En Mainnet se crearon el mint SPL definitivo, su metadata on-chain y el ATA oficial de producción, y se completó la única emisión inicial autorizada de `1,000 AVI`; no existen pool ni posición. La licencia está **pendiente de definir**.
+Existe un mint de pruebas y su cuenta de metadata en devnet, registrados en la sección de despliegues. En Mainnet se crearon el mint SPL definitivo, su metadata on-chain y el ATA oficial de producción. Después de la emisión inicial de `1,000 AVI`, una autorización independiente emitió exactamente `99,999,000 AVI`; el supply final declarado es `100,000,000 AVI`. No existen pool ni posición. La licencia está **pendiente de definir**.
 
 El registro histórico de devnet usa nombre `AVICOIN`, símbolo `AVI`, 9 decimales y supply 0. La política Mainnet vigente es distinta y está documentada en [tokenomics](docs/tokenomics.md) y [readiness](docs/mainnet-readiness.md).
 
@@ -26,7 +26,7 @@ pnpm typecheck
 
 ## Redes y protecciones
 
-`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Las consultas y el plan unsigned validan genesis, RPC y wallet con `ALLOW_MAINNET=false`. Los adaptadores Phantom ya utilizados para `create-mint`, `create-metadata`, `create-ata` y `mint-fixed-supply` aíslan cada operación; la firma y el envío permanecen bloqueados salvo una sesión efímera deliberada con operación exacta, token de confirmación y `ALLOW_MAINNET=true`. Ningún plan local o hash autoriza por sí mismo una operación real.
+`devnet` es una red de pruebas cuyos tokens y SOL no tienen valor real. `mainnet-beta` es la red productiva y cualquier error puede ser irreversible. Las consultas y el plan unsigned validan genesis, RPC y wallet con `ALLOW_MAINNET=false`. Los adaptadores Phantom ya utilizados para `create-mint`, `create-metadata`, `create-ata`, `mint-fixed-supply` y `mint-final-supply` aíslan cada operación; la firma y el envío permanecen bloqueados salvo una sesión efímera deliberada con operación exacta, token de confirmación y `ALLOW_MAINNET=true`. Ningún plan local o hash autoriza por sí mismo una operación real.
 
 La configuración está separada en `config/devnet.ts` y `config/mainnet.ts`. Mainnet nunca hereda el mint de devnet. El estado inicial no secreto está en `config/mainnet-launch-state.json`; sus valores deben compararse siempre con el estado on-chain.
 
@@ -57,11 +57,11 @@ El preflight Mainnet actual es exclusivamente read-only/unsigned:
 pnpm mainnet:preflight-plan
 ```
 
-Las interfaces locales autocontenidas usan exclusivamente el proveedor inyectado por Phantom. `pnpm phantom:serve`, `pnpm phantom:metadata`, `pnpm phantom:ata` y `pnpm phantom:supply` aíslan respectivamente la creación del mint, metadata, ATA y la única emisión fija. No usan CDN, no solicitan secretos y no firman al conectar o cargar. Su flujo manual es:
+Las interfaces locales autocontenidas usan exclusivamente el proveedor inyectado por Phantom. `pnpm phantom:serve`, `pnpm phantom:metadata`, `pnpm phantom:ata`, `pnpm phantom:supply` y `pnpm phantom:final-supply` aíslan respectivamente la creación del mint, metadata, ATA, emisión inicial y emisión final declarada. No usan CDN, no solicitan secretos y no firman al conectar o cargar. Su flujo manual es:
 
 `Connect → Build stable plan → Review → confirmación → Prepare fresh transaction / Simulate → Request signature → segunda confirmación → Send → Verify finalized state`.
 
-Cada adaptador habilita una sola operación exacta. El plan estable se revisa sin blockhash final; después, `Prepare` obtiene un blockhash fresco y simula el mensaje exacto. Se reservan 40 block heights antes de solicitar firma y 20 antes de aceptar o enviar. Después de `Send` o de un resultado ambiguo está prohibido reconstruir o repetir. La única emisión fija ya finalizó; los flujos finalizados no autorizan una emisión adicional, pool, posición, liquidez ni swaps.
+Cada adaptador habilita una sola operación exacta. El plan estable se revisa sin blockhash final; después, `Prepare` obtiene un blockhash fresco y simula el mensaje exacto. Se reservan 40 block heights antes de solicitar firma y 20 antes de aceptar o enviar. Después de `Send` o de un resultado ambiguo está prohibido reconstruir o repetir. Las dos emisiones autorizadas ya finalizaron; los flujos finalizados no autorizan otra emisión, pool, posición, liquidez ni swaps.
 
 `create-token` no asigna freeze authority por defecto. Se puede elegir explícitamente `none`, `payer` o una dirección pública con `--freeze-authority=VALOR`; esta decisión debe revisarse antes de crear el mint.
 
@@ -77,7 +77,7 @@ Cada adaptador habilita una sola operación exacta. El plan estable se revisa si
 - Confirma red, RPC, dirección, decimales, cantidad y authorities en cada operación.
 - Usa una wallet de pruebas separada y respáldala mediante un procedimiento seguro externo.
 - No revoques authorities sin comprender que la acción es irreversible.
-- TBD: distribución y supply finales, freeze authority, momento de fijar supply, custodia, metadata/logo definitivos, licencia, utilidades y evaluación previa a mainnet.
+- TBD: distribución posterior del supply, custodia, posible revocación futura de mint authority, licencia y utilidades. El supply final declarado actual es `100,000,000 AVI`, pero no constituye un límite criptográfico mientras la mint authority permanezca retenida.
 
 ## Despliegues
 
@@ -112,23 +112,25 @@ La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-t
 
 ### Mainnet-beta
 
-Estado: **mint, metadata, ATA y supply inicial Mainnet creados y verificados / pool y posición pendientes**.
+Estado: **mint, metadata, ATA y supply final declarado Mainnet creados y verificados / pool y posición pendientes**.
 
 - Wallet de producción Phantom: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq` (sólo public key).
 - Mint address: [`GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`](https://explorer.solana.com/address/GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC).
 - Transacción create-mint: [`4nhedBupr9cpyFh3ZFKrUboGaDHnnuCRdtCvyPBsidAX1Smk79hVtmXK8snr8jhUGbYYQZMWKWTg7Q4qWM7UegkH`](https://explorer.solana.com/tx/4nhedBupr9cpyFh3ZFKrUboGaDHnnuCRdtCvyPBsidAX1Smk79hVtmXK8snr8jhUGbYYQZMWKWTg7Q4qWM7UegkH).
-- Decimales: 9; supply actual: `1,000 AVI` / `1,000,000,000,000` unidades base.
-- Supply inicial: la única operación `mintToChecked` autorizada emitió exactamente `1,000 AVI` al ATA oficial y quedó consumida.
-- Supply máximo permanente: no definido (`null`). No se autoriza emisión adicional en esta etapa.
+- Decimales: 9; supply actual: `100,000,000 AVI` / `100,000,000,000,000,000` unidades base.
+- Supply inicial: una operación `mintToChecked` emitió exactamente `1,000 AVI` al ATA oficial.
+- Emisión final declarada: una autorización independiente ejecutó exactamente una `mintToChecked` adicional por `99,999,000 AVI`; supply resultante `100,000,000 AVI`.
+- Supply máximo permanente: no definido (`null`). El supply actual es el objetivo final declarado, pero no es un límite criptográfico mientras la mint authority continúe retenida. No existe autorización operativa para emitir más AVI.
 - Freeze authority: ninguna.
 - Mint authority: retenida temporalmente por la wallet de producción; esto no garantiza supply fijo ni autoriza nuevas emisiones.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
 - Metadata on-chain: [`4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`](https://explorer.solana.com/address/4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2), creada con nombre `AVICOIN`, símbolo `AVI`, seller fee 0, URI pública exacta y update authority de producción.
 - Transacción create-metadata: [`38YgPFw4a3Z4m5LQdJAbLvjCjhU34yT9ksUsgWf1jXBQdXjwRwwz8ANx6KB4zpEi8U8W3ycDMgWb6GDNErMEcvJz`](https://explorer.solana.com/tx/38YgPFw4a3Z4m5LQdJAbLvjCjhU34yT9ksUsgWf1jXBQdXjwRwwz8ANx6KB4zpEi8U8W3ycDMgWb6GDNErMEcvJz).
-- ATA oficial: [`H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`](https://explorer.solana.com/address/H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE), owner de producción, mint AVICOIN y balance `1,000 AVI`.
+- ATA oficial: [`H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`](https://explorer.solana.com/address/H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE), owner de producción, mint AVICOIN y balance `100,000,000 AVI`.
 - Transacción create-ata: [`1Dqyd5tV4CnaQSPDydrLRaN5pgDUjMwGGEY2Yah6trt259ETZQdLKzsL2LyTqHPipGNwhiu1X5BqC72fU1CteeH`](https://explorer.solana.com/tx/1Dqyd5tV4CnaQSPDydrLRaN5pgDUjMwGGEY2Yah6trt259ETZQdLKzsL2LyTqHPipGNwhiu1X5BqC72fU1CteeH), finalizada en el slot `434624296`.
 - Transacción mint-fixed-supply: [`3oQ6WHWKkzbiQx61rPN85jTenAtndYKNbkXodoWXrZa6XP3sxquSeuaUXpkRcEFb3q2RjtqmmYtC2KfrQPjFgiqr`](https://explorer.solana.com/tx/3oQ6WHWKkzbiQx61rPN85jTenAtndYKNbkXodoWXrZa6XP3sxquSeuaUXpkRcEFb3q2RjtqmmYtC2KfrQPjFgiqr), finalizada en el slot `434632215`.
+- Transacción mint-final-supply: [`4LwCLwoTH7fXDVhhuLH7oXLSs4aZsXCzregqNHMtqm6NXbo96gxhT87zhgfy52bqbJ2Rwp8ffePLfYbPcg3r47rM`](https://explorer.solana.com/tx/4LwCLwoTH7fXDVhhuLH7oXLSs4aZsXCzregqNHMtqm6NXbo96gxhT87zhgfy52bqbJ2Rwp8ffePLfYbPcg3r47rM), finalizada en el slot `434636115`.
 - Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, actualizada al estado creado y verificada con SHA-256 `f3d87b8c254b190218a2a8b94630b8ef764555b18ce72ba657f1b2677daffb90`.
-- Estado de seguridad: `create-mint`, `create-metadata`, `create-ata` y `mint-fixed-supply` finalizados una vez; `ALLOW_MAINNET=false`; firmas Phantom: 4; transacciones Mainnet: 4. No se autoriza repetir ninguna de esas operaciones ni emitir supply adicional.
+- Estado de seguridad: `create-mint`, `create-metadata`, `create-ata`, `mint-fixed-supply` y `mint-final-supply` finalizados una vez; `ALLOW_MAINNET=false`; firmas Phantom: 5; transacciones Mainnet: 5. No se autoriza repetir ninguna de esas operaciones ni emitir supply adicional.
 
 La evidencia exacta está en [mainnet-token](docs/mainnet-token.md) y [mainnet-metadata](docs/mainnet-metadata.md). El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

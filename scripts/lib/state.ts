@@ -11,6 +11,7 @@ const stateSchema = z.object({
   launch_mint_operations_allowed: z.literal(1),
   launch_mint_operations_completed: z.union([z.literal(0), z.literal(1)]),
   permanent_max_supply: z.null(),
+  final_supply: z.boolean().optional(),
   mint_authority_policy: z.enum(["retained_temporarily", "revoked"]),
   avi_mint: z.string().nullable(),
   metadata_pda: z.string().nullable(),

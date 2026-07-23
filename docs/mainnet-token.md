@@ -1,6 +1,6 @@
 # AVICOIN Mainnet Mint
 
-Estado: **create-mint, metadata, ATA y única emisión fija finalized; supply 1,000 AVI**.
+Estado: **create-mint, metadata, ATA, emisión inicial y emisión final declarada finalized; supply 100,000,000 AVI**.
 
 ## Identidad y transacción
 
@@ -24,7 +24,7 @@ Estado: **create-mint, metadata, ATA y única emisión fija finalized; supply 1,
 - Initialized: `true`.
 - Tamaño de la cuenta mint: 82 bytes.
 - Decimales: 9.
-- Supply: `1,000,000,000,000` unidades base / `1,000 AVI`.
+- Supply: `100,000,000,000,000,000` unidades base / `100,000,000 AVI`.
 - Mint authority: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
 - Freeze authority: `none`.
 - Instrucciones: exactamente `SystemProgram.createAccount` y `initializeMint2`.
@@ -41,11 +41,11 @@ Estado: **create-mint, metadata, ATA y única emisión fija finalized; supply 1,
 
 - Metadata on-chain: creada y verificada en la PDA `4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`. Véase [mainnet-metadata.md](mainnet-metadata.md).
 - ATA AVI de producción: creada y verificada en `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`.
-- AVI emitidos: `1,000`, mediante la única emisión inicial autorizada.
+- AVI emitidos: `100,000,000`; `1,000 AVI` en la emisión inicial y `99,999,000 AVI` en una autorización independiente posterior.
 - Mint authority revocada: no.
 - Pool, posición, liquidez y swaps: no creados ni ejecutados.
-- Firmas Phantom acumuladas: 4 (`create-mint`, `create-metadata`, `create-ata` y `mint-fixed-supply`).
-- Transacciones Mainnet acumuladas: 4.
+- Firmas Phantom acumuladas: 5 (`create-mint`, `create-metadata`, `create-ata`, `mint-fixed-supply` y `mint-final-supply`).
+- Transacciones Mainnet acumuladas: 5.
 
 ## Associated Token Account oficial
 
@@ -57,7 +57,7 @@ Estado: **create-mint, metadata, ATA y única emisión fija finalized; supply 1,
 - Owner del ATA: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
 - Mint del ATA: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`.
 - Owner del programa: `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`.
-- Balance actual: `1,000,000,000,000` unidades base / `1,000 AVI`.
+- Balance actual: `100,000,000,000,000,000` unidades base / `100,000,000 AVI`.
 - Instrucciones: dos Compute Budget y exactamente una `associated-token:createIdempotent`; ninguna instrucción `mintTo`.
 - Stable plan hash: `051d52928454030b5c1a67fd42ed2f759207dc7c4bb5f5e3a074fe071832db82`.
 - Message hash: `8d107328f3f465d3b4a56de2d33e980a066c69c309f98347f8ca10dfe33a6b35`.
@@ -97,7 +97,34 @@ Estado: **create-mint, metadata, ATA y única emisión fija finalized; supply 1,
 - Mint authority: sin cambios, wallet de producción.
 - Freeze authority: `none`.
 - Metadata: sin cambios; PDA, nombre, símbolo, URI, seller fee, mutabilidad y update authority exactos.
-- La única operación inicial permitida quedó registrada como consumida. No se autoriza una segunda emisión.
+- La operación inicial quedó registrada como consumida. La autorización posterior `mint-final-supply` se documenta a continuación.
 - Pool, posición, liquidez y swaps: no creados ni ejecutados.
 
-El servidor loopback fue detenido después de `finalized`; el keypair del mint existió sólo en memoria del proceso y no fue persistido. Los recovery públicos finalizados fueron eliminados durante cada cierre. Esta evidencia no autoriza una emisión adicional ni ninguna operación posterior.
+## Emisión final declarada
+
+- Firma: [`4LwCLwoTH7fXDVhhuLH7oXLSs4aZsXCzregqNHMtqm6NXbo96gxhT87zhgfy52bqbJ2Rwp8ffePLfYbPcg3r47rM`](https://explorer.solana.com/tx/4LwCLwoTH7fXDVhhuLH7oXLSs4aZsXCzregqNHMtqm6NXbo96gxhT87zhgfy52bqbJ2Rwp8ffePLfYbPcg3r47rM).
+- Estado: `finalized`, sin error.
+- Slot: `434636115`.
+- Fecha UTC: `2026-07-23T03:16:42.000Z`.
+- Stable plan hash: `890ea455c7019f377ab8157709ac9ebbae5170c5c5a282dd80d40389dee4a0b6`.
+- Message hash: `6982f0fa7de53abaa2ee7a830dc224f5c888a84ea6985af8a542d62d4ff02273`.
+- Blockhash: `J4JuqK6c1pAgZF8YjAd8RankdSTMJAr76FRk3xFSxP1a`.
+- Last valid block height: `412696505`.
+- Instrucciones: dos Compute Budget y exactamente una `mintToChecked`.
+- Mint: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`.
+- Destino: ATA oficial `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`.
+- Autoridad y signer: wallet de producción `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`.
+- Cantidad emitida: `99,999,000,000,000,000` unidades base / `99,999,000 AVI`; decimales verificados: 9.
+- Supply antes: `1,000 AVI`; supply después: `100,000,000 AVI`.
+- Balance ATA antes: `1,000 AVI`; balance ATA después: `100,000,000 AVI`.
+- Cuentas del mint después: exactamente una, el ATA oficial, con todo el supply.
+- SOL antes: `0.320922389 SOL` / `320,922,389` lamports.
+- SOL después: `0.320917339 SOL` / `320,917,339` lamports.
+- Fee y costo total: `0.000005050 SOL` / `5,050` lamports.
+- Mint authority: sin cambios, wallet de producción.
+- Freeze authority: `none`.
+- Metadata: sin cambios; PDA, nombre, símbolo, URI, seller fee, mutabilidad y update authority exactos.
+- Pool, posición, liquidez y swaps: no creados ni ejecutados.
+- El supply actual de `100,000,000 AVI` es el objetivo final declarado. Como la mint authority permanece retenida, no es un máximo criptográfico; cualquier emisión futura requeriría una decisión y autorización nuevas y actualmente no está autorizada.
+
+El servidor loopback fue detenido después de `finalized`; el recovery público finalizado fue eliminado durante el cierre. Esta evidencia no autoriza una emisión adicional ni ninguna operación posterior.

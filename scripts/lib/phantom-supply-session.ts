@@ -7,6 +7,11 @@ import { solanaTransactionSignature, type PhantomRuntimeAuthorization } from "./
 import { AVICOIN_MAINNET_ATA, AVICOIN_MAINNET_MINT } from "./phantom-ata-session.js";
 
 export const FIXED_SUPPLY_CONFIRMATION_TOKEN = "CONFIRMO-MAINNET-EMITIR-1000-AVI";
+export const FINAL_SUPPLY_CONFIRMATION_TOKEN = "CONFIRMO-MAINNET-EMITIR-SUPPLY-DEFINITIVO";
+export const FINAL_SUPPLY_ISSUANCE_AVI = 99_999_000n;
+export const FINAL_SUPPLY_ISSUANCE_BASE_UNITS = 99_999_000_000_000_000n;
+export const FINAL_SUPPLY_TOTAL_AVI = 100_000_000n;
+export const FINAL_SUPPLY_TOTAL_BASE_UNITS = 100_000_000_000_000_000n;
 export const FIXED_SUPPLY_SIGNATURE_BLOCK_HEIGHT_MARGIN = 40;
 export const FIXED_SUPPLY_SEND_BLOCK_HEIGHT_MARGIN = 20;
 export const FIXED_SUPPLY_COMPUTE_UNIT_LIMIT = 50_000;
@@ -14,6 +19,38 @@ export const FIXED_SUPPLY_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 1_000n;
 export const FIXED_SUPPLY_MAX_PRIORITY_FEE_LAMPORTS = 50n;
 const ED25519_SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
 const ZERO_SIGNATURE = new Uint8Array(64);
+
+export type SupplyOperation = "mint-fixed-supply" | "mint-final-supply";
+
+export interface SupplyIssuancePolicy {
+  readonly operation: SupplyOperation;
+  readonly confirmationToken: string;
+  readonly currentSupplyBaseUnits: bigint;
+  readonly issuanceAvi: bigint;
+  readonly issuanceBaseUnits: bigint;
+  readonly finalSupplyAvi: bigint;
+  readonly finalSupplyBaseUnits: bigint;
+}
+
+export const FIXED_SUPPLY_POLICY: SupplyIssuancePolicy = Object.freeze({
+  operation: "mint-fixed-supply",
+  confirmationToken: FIXED_SUPPLY_CONFIRMATION_TOKEN,
+  currentSupplyBaseUnits: 0n,
+  issuanceAvi: 1_000n,
+  issuanceBaseUnits: MAINNET_INITIAL_LAUNCH_BASE_UNITS,
+  finalSupplyAvi: 1_000n,
+  finalSupplyBaseUnits: MAINNET_INITIAL_LAUNCH_BASE_UNITS,
+});
+
+export const FINAL_SUPPLY_POLICY: SupplyIssuancePolicy = Object.freeze({
+  operation: "mint-final-supply",
+  confirmationToken: FINAL_SUPPLY_CONFIRMATION_TOKEN,
+  currentSupplyBaseUnits: MAINNET_INITIAL_LAUNCH_BASE_UNITS,
+  issuanceAvi: FINAL_SUPPLY_ISSUANCE_AVI,
+  issuanceBaseUnits: FINAL_SUPPLY_ISSUANCE_BASE_UNITS,
+  finalSupplyAvi: FINAL_SUPPLY_TOTAL_AVI,
+  finalSupplyBaseUnits: FINAL_SUPPLY_TOTAL_BASE_UNITS,
+});
 
 export type FixedSupplyStatus = "plan_built" | "plan_reviewed" | "simulated" | "signature_requested" | "signed" | "send_locked" | "sent" | "finalized" | "ambiguous" | "cancelled";
 
@@ -41,11 +78,11 @@ export interface SupplyRpc {
 }
 
 export interface SupplyRecoveryRecord {
-  readonly operation: "mint-fixed-supply";
+  readonly operation: SupplyOperation;
   readonly status: "sending" | "sent" | "ambiguous" | "finalized";
   readonly mintAddress: string;
   readonly ata: string;
-  readonly amountBaseUnits: "1000000000000";
+  readonly amountBaseUnits: string;
   readonly messageHash: string;
   readonly planHash: string;
   readonly blockhash: string;
@@ -60,7 +97,7 @@ export interface SupplyRecoveryStore {
 }
 
 export interface SupplyPlan {
-  readonly operation: "mint-fixed-supply";
+  readonly operation: SupplyOperation;
   readonly network: "mainnet-beta";
   readonly genesisHash: string;
   readonly rpcHost: string;
@@ -71,8 +108,11 @@ export interface SupplyPlan {
   readonly destinationOwner: string;
   readonly tokenProgram: string;
   readonly instruction: "spl-token:mintToChecked";
-  readonly amountAvi: "1000";
-  readonly amountBaseUnits: "1000000000000";
+  readonly amountAvi: string;
+  readonly amountBaseUnits: string;
+  readonly currentSupplyBaseUnits: string;
+  readonly finalSupplyAvi: string;
+  readonly finalSupplyBaseUnits: string;
   readonly decimals: 9;
   readonly computeUnitLimit: typeof FIXED_SUPPLY_COMPUTE_UNIT_LIMIT;
   readonly computeUnitPriceMicroLamports: string;
@@ -151,19 +191,19 @@ function fingerprint(runtime: PhantomRuntimeAuthorization): string {
   return sha256(stable({ network: runtime.network, rpcUrl: runtime.rpcUrl, expectedGenesisHash: runtime.expectedGenesisHash, productionWallet: runtime.productionWallet, allowMainnet: runtime.allowMainnet, operation: runtime.operation ?? null }));
 }
 
-function assertRuntime(runtime: PhantomRuntimeAuthorization, wallet: string): void {
+function assertRuntime(runtime: PhantomRuntimeAuthorization, wallet: string, policy: SupplyIssuancePolicy): void {
   if (runtime.network !== "mainnet-beta") throw new Error("La sesión Phantom exige mainnet-beta.");
   if (runtime.expectedGenesisHash !== MAINNET_CONFIG.genesisHash) throw new Error("Genesis Mainnet configurado incorrectamente.");
   if (runtime.productionWallet !== wallet) throw new Error("La wallet Phantom no coincide con production_wallet.");
-  if (runtime.operation !== "mint-fixed-supply") throw new Error("La operación debe ser exactamente mint-fixed-supply.");
+  if (runtime.operation !== policy.operation) throw new Error(`La operación debe ser exactamente ${policy.operation}.`);
   const url = new URL(runtime.rpcUrl);
   if (url.protocol !== "https:" || url.username || url.password) throw new Error("El RPC Mainnet debe ser HTTPS sin credenciales.");
 }
 
-function assertAuthorization(runtime: PhantomRuntimeAuthorization, token: string): void {
+function assertAuthorization(runtime: PhantomRuntimeAuthorization, token: string, policy: SupplyIssuancePolicy): void {
   if (!runtime.allowMainnet) throw new Error("ALLOW_MAINNET debe ser true sólo durante la sesión deliberada.");
-  if (runtime.operation !== "mint-fixed-supply") throw new Error("AVICOIN_MAINNET_OPERATION debe ser mint-fixed-supply.");
-  if (runtime.confirmationToken !== FIXED_SUPPLY_CONFIRMATION_TOKEN || token !== FIXED_SUPPLY_CONFIRMATION_TOKEN) throw new Error("Token de confirmación de emisión inválido.");
+  if (runtime.operation !== policy.operation) throw new Error(`AVICOIN_MAINNET_OPERATION debe ser ${policy.operation}.`);
+  if (runtime.confirmationToken !== policy.confirmationToken || token !== policy.confirmationToken) throw new Error("Token de confirmación de emisión inválido.");
 }
 
 function verifyWalletSignature(wallet: PublicKey, message: Uint8Array, signature: Uint8Array): boolean {
@@ -175,11 +215,15 @@ export function fixedSupplyInstruction(wallet: PublicKey, mint: PublicKey, ata: 
   return createMintToCheckedInstruction(mint, ata, wallet, MAINNET_INITIAL_LAUNCH_BASE_UNITS, 9, [], TOKEN_PROGRAM_ID);
 }
 
-function transactionInstructions(wallet: PublicKey, mint: PublicKey, ata: PublicKey) {
+export function finalSupplyInstruction(wallet: PublicKey, mint: PublicKey, ata: PublicKey) {
+  return createMintToCheckedInstruction(mint, ata, wallet, FINAL_SUPPLY_ISSUANCE_BASE_UNITS, 9, [], TOKEN_PROGRAM_ID);
+}
+
+function transactionInstructions(wallet: PublicKey, mint: PublicKey, ata: PublicKey, policy: SupplyIssuancePolicy) {
   return [
     ComputeBudgetProgram.setComputeUnitLimit({ units: FIXED_SUPPLY_COMPUTE_UNIT_LIMIT }),
     ComputeBudgetProgram.setComputeUnitPrice({ microLamports: FIXED_SUPPLY_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
-    fixedSupplyInstruction(wallet, mint, ata),
+    createMintToCheckedInstruction(mint, ata, wallet, policy.issuanceBaseUnits, 9, [], TOKEN_PROGRAM_ID),
   ];
 }
 
@@ -213,6 +257,7 @@ export class PhantomFixedSupplyCoordinator {
     private readonly assertMetadata: () => Promise<void> = async () => undefined,
     private readonly onFinalized: () => Promise<void> = async () => undefined,
     private readonly now: () => Date = () => new Date(),
+    private readonly policy: SupplyIssuancePolicy = FIXED_SUPPLY_POLICY,
   ) {}
 
   diagnostics() {
@@ -222,12 +267,12 @@ export class PhantomFixedSupplyCoordinator {
   }
 
   async build(input: { readonly connectedWallet: string; readonly operation: string }): Promise<SupplyPublicSession> {
-    if (input.operation !== "mint-fixed-supply") throw new Error("Sólo mint-fixed-supply está habilitado.");
-    if (this.session) throw new Error("Ya existe una sesión mint-fixed-supply; no se construirá otra.");
+    if (input.operation !== this.policy.operation) throw new Error(`Sólo ${this.policy.operation} está habilitado.`);
+    if (this.session) throw new Error(`Ya existe una sesión ${this.policy.operation}; no se construirá otra.`);
     const recovery = await this.recovery.load();
     if (recovery && recovery.status !== "finalized") throw new Error(`Existe una emisión ${recovery.status}; debe resolverse antes de continuar.`);
     const runtime = this.runtime();
-    assertRuntime(runtime, input.connectedWallet);
+    assertRuntime(runtime, input.connectedWallet, this.policy);
     await this.assertExpectedState();
     await this.assertMetadata();
     const genesis = await this.rpc.getGenesisHash();
@@ -237,17 +282,17 @@ export class PhantomFixedSupplyCoordinator {
     const ataAddress = new PublicKey(AVICOIN_MAINNET_ATA);
     const mintAccount = await this.rpc.readMint(mint);
     if (mintAccount.owner !== TOKEN_PROGRAM_ID.toBase58()) throw new Error("El mint no pertenece al SPL Token Program.");
-    assertMintSnapshot(mintAccount.snapshot, { authority: wallet.toBase58(), supply: 0n });
+    assertMintSnapshot(mintAccount.snapshot, { authority: wallet.toBase58(), supply: this.policy.currentSupplyBaseUnits });
     const ata = await this.rpc.readAta(ataAddress);
-    if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== mint.toBase58() || ata.owner !== wallet.toBase58() || ata.amount !== 0n) throw new Error("El ATA oficial no existe o no está vacío y exacto.");
+    if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== mint.toBase58() || ata.owner !== wallet.toBase58() || ata.amount !== this.policy.currentSupplyBaseUnits) throw new Error("El ATA oficial no existe o no contiene exactamente el supply previo requerido.");
     const accounts = await this.rpc.listMintAccounts(mint);
-    if (accounts.length !== 1 || accounts[0]?.address !== ataAddress.toBase58() || accounts[0].amount !== 0n) throw new Error("Existe otra cuenta SPL del mint o la distribución inicial no está vacía.");
+    if (accounts.length !== 1 || accounts[0]?.address !== ataAddress.toBase58() || accounts[0].amount !== this.policy.currentSupplyBaseUnits) throw new Error("Existe otra cuenta SPL del mint o la distribución previa no coincide.");
     const balance = await this.rpc.getBalance(wallet);
     const estimatedFee = 5_000n + FIXED_SUPPLY_MAX_PRIORITY_FEE_LAMPORTS;
     if (balance < estimatedFee) throw new Error("Saldo SOL insuficiente para el fee estimado.");
-    const instruction = fixedSupplyInstruction(wallet, mint, ataAddress);
+    const instruction = createMintToCheckedInstruction(mint, ataAddress, wallet, this.policy.issuanceBaseUnits, 9, [], TOKEN_PROGRAM_ID);
     const base = {
-      operation: "mint-fixed-supply" as const,
+      operation: this.policy.operation,
       network: "mainnet-beta" as const,
       genesisHash: genesis,
       rpcHost: new URL(runtime.rpcUrl).hostname,
@@ -258,8 +303,11 @@ export class PhantomFixedSupplyCoordinator {
       destinationOwner: wallet.toBase58(),
       tokenProgram: TOKEN_PROGRAM_ID.toBase58(),
       instruction: "spl-token:mintToChecked" as const,
-      amountAvi: "1000" as const,
-      amountBaseUnits: "1000000000000" as const,
+      amountAvi: this.policy.issuanceAvi.toString(),
+      amountBaseUnits: this.policy.issuanceBaseUnits.toString(),
+      currentSupplyBaseUnits: this.policy.currentSupplyBaseUnits.toString(),
+      finalSupplyAvi: this.policy.finalSupplyAvi.toString(),
+      finalSupplyBaseUnits: this.policy.finalSupplyBaseUnits.toString(),
       decimals: 9 as const,
       computeUnitLimit: FIXED_SUPPLY_COMPUTE_UNIT_LIMIT as typeof FIXED_SUPPLY_COMPUTE_UNIT_LIMIT,
       computeUnitPriceMicroLamports: FIXED_SUPPLY_COMPUTE_UNIT_PRICE_MICROLAMPORTS.toString(),
@@ -270,7 +318,14 @@ export class PhantomFixedSupplyCoordinator {
       balanceBeforeLamports: balance.toString(),
       estimatedFeeLamports: estimatedFee.toString(),
       expectedBalanceChangeLamports: (-estimatedFee).toString(),
-      stopConditions: ["wallet, mint, ATA, genesis, RPC or plan changed", "supply or ATA balance is not zero", "another token account exists", "metadata or authorities changed", "blockhash margin insufficient", "send started or result ambiguous"] as const,
+      stopConditions: [
+        "wallet, mint, ATA, genesis, RPC or plan changed",
+        `supply or ATA balance is not exactly ${this.policy.currentSupplyBaseUnits.toString()} base units`,
+        "another token account exists",
+        "metadata or authorities changed",
+        "blockhash margin insufficient",
+        "send started or result ambiguous",
+      ] as const,
     };
     const planHash = sha256(stable(base));
     const session: Session = { id: randomUUID(), status: "plan_built", planReviewed: false, plan: { ...base, planHash }, configFingerprint: fingerprint(runtime), fresh: null, signature: null, expectedSignature: null, sendInFlight: false };
@@ -288,8 +343,8 @@ export class PhantomFixedSupplyCoordinator {
   async prepareFreshTransaction(input: CommonInput & { readonly confirmationToken: string; readonly explicitlyConfirmed: boolean }): Promise<SupplyPublicSession> {
     const session = await this.assertCurrent(input, ["plan_reviewed", "simulated", "signature_requested", "signed"]);
     if (!session.planReviewed) throw new Error("El servidor no confirma Review del stable plan.");
-    if (!input.explicitlyConfirmed) throw new Error("Confirma Mainnet, supply 0, ATA 0 y emisión exacta de 1,000 AVI.");
-    assertAuthorization(this.runtime(), input.confirmationToken);
+    if (!input.explicitlyConfirmed) throw new Error(`Confirma Mainnet, supply previo exacto y emisión exacta de ${this.policy.issuanceAvi.toString()} AVI.`);
+    assertAuthorization(this.runtime(), input.confirmationToken, this.policy);
     await this.assertMetadata();
     session.fresh = null; session.signature = null; session.expectedSignature = null;
     try {
@@ -297,7 +352,7 @@ export class PhantomFixedSupplyCoordinator {
       const mint = new PublicKey(session.plan.mintAddress);
       const ata = new PublicKey(session.plan.destinationAta);
       const [balance, lifetime] = await Promise.all([this.rpc.getBalance(wallet), this.rpc.getLatestBlockhash()]);
-      const message = new TransactionMessage({ payerKey: wallet, recentBlockhash: lifetime.blockhash, instructions: transactionInstructions(wallet, mint, ata) }).compileToV0Message();
+      const message = new TransactionMessage({ payerKey: wallet, recentBlockhash: lifetime.blockhash, instructions: transactionInstructions(wallet, mint, ata, this.policy) }).compileToV0Message();
       const fee = await this.rpc.getFeeForMessage(message);
       if (balance < fee) throw new Error("Saldo SOL insuficiente para la emisión fresca.");
       const transaction = new VersionedTransaction(message);
@@ -322,7 +377,7 @@ export class PhantomFixedSupplyCoordinator {
   async signingPayload(input: CommonInput & { readonly confirmationToken: string; readonly explicitlyConfirmed: boolean }) {
     const session = await this.assertCurrent(input, ["simulated"]);
     if (!session.planReviewed || !input.explicitlyConfirmed) throw new Error("Falta Review o primera confirmación manual.");
-    assertAuthorization(this.runtime(), input.confirmationToken);
+    assertAuthorization(this.runtime(), input.confirmationToken, this.policy);
     await this.assertMetadata();
     await this.assertMargin(session, FIXED_SUPPLY_SIGNATURE_BLOCK_HEIGHT_MARGIN, "solicitar firma");
     if (!session.fresh) throw new Error("El mensaje fresco fue invalidado.");
@@ -350,7 +405,7 @@ export class PhantomFixedSupplyCoordinator {
     const wallet = new PublicKey(session.plan.payer);
     if (!signed.message.staticAccountKeys[0]?.equals(wallet) || signed.message.header.numRequiredSignatures !== 1) throw new Error("Payer o signers inesperados.");
     const signature = signed.signatures[0];
-    if (!signature || Buffer.from(signature).equals(Buffer.from(ZERO_SIGNATURE)) || !verifyWalletSignature(wallet, message, signature)) throw new Error("Firma Phantom inválida para la emisión exacta.");
+    if (!signature || Buffer.from(signature).equals(Buffer.from(ZERO_SIGNATURE)) || !verifyWalletSignature(wallet, message, signature)) throw new Error(`Firma Phantom inválida para ${this.policy.operation}.`);
     await this.assertMargin(session, FIXED_SUPPLY_SEND_BLOCK_HEIGHT_MARGIN, "aceptar firma");
     if (!session.fresh) throw new Error("La firma llegó fuera de margen.");
     session.fresh.signedTransaction = signed;
@@ -363,7 +418,7 @@ export class PhantomFixedSupplyCoordinator {
     const session = await this.assertCurrent(input, ["signed"]);
     if (!input.explicitlyConfirmed) throw new Error("Falta la segunda confirmación manual.");
     if (session.sendInFlight) throw new Error("La emisión ya se está enviando.");
-    assertAuthorization(this.runtime(), input.confirmationToken);
+    assertAuthorization(this.runtime(), input.confirmationToken, this.policy);
     await this.assertMetadata();
     await this.assertMargin(session, FIXED_SUPPLY_SEND_BLOCK_HEIGHT_MARGIN, "enviar");
     const fresh = session.fresh;
@@ -393,11 +448,11 @@ export class PhantomFixedSupplyCoordinator {
       await this.rpc.confirmFinalized({ signature: session.signature, blockhash: fresh.blockhash, lastValidBlockHeight: fresh.lastValidBlockHeight });
       const mint = await this.rpc.readMint(new PublicKey(session.plan.mintAddress));
       if (mint.owner !== TOKEN_PROGRAM_ID.toBase58()) throw new Error("Owner del mint cambió.");
-      assertMintSnapshot(mint.snapshot, { authority: session.plan.payer, supply: MAINNET_INITIAL_LAUNCH_BASE_UNITS });
+      assertMintSnapshot(mint.snapshot, { authority: session.plan.payer, supply: this.policy.finalSupplyBaseUnits });
       const ata = await this.rpc.readAta(new PublicKey(session.plan.destinationAta));
-      if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== session.plan.mintAddress || ata.owner !== session.plan.destinationOwner || ata.amount !== MAINNET_INITIAL_LAUNCH_BASE_UNITS) throw new Error("El ATA final no contiene exactamente 1,000 AVI.");
+      if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== session.plan.mintAddress || ata.owner !== session.plan.destinationOwner || ata.amount !== this.policy.finalSupplyBaseUnits) throw new Error(`El ATA final no contiene exactamente ${this.policy.finalSupplyAvi.toString()} AVI.`);
       const accounts = await this.rpc.listMintAccounts(new PublicKey(session.plan.mintAddress));
-      if (accounts.length !== 1 || accounts[0]?.address !== session.plan.destinationAta || accounts[0].amount !== MAINNET_INITIAL_LAUNCH_BASE_UNITS) throw new Error("La distribución final contiene otra cuenta o un balance inesperado.");
+      if (accounts.length !== 1 || accounts[0]?.address !== session.plan.destinationAta || accounts[0].amount !== this.policy.finalSupplyBaseUnits) throw new Error("La distribución final contiene otra cuenta o un balance inesperado.");
       await this.assertMetadata();
       await this.onFinalized();
       session.status = "finalized";
@@ -416,11 +471,11 @@ export class PhantomFixedSupplyCoordinator {
 
   private async assertCurrent(input: CommonInput, statuses: readonly FixedSupplyStatus[]): Promise<Session> {
     const session = this.session;
-    if (!session || session.id !== input.sessionId) throw new Error("Sesión mint-fixed-supply desconocida.");
+    if (!session || session.id !== input.sessionId) throw new Error(`Sesión ${this.policy.operation} desconocida.`);
     if (!statuses.includes(session.status)) throw new Error(`Transición inválida desde ${session.status}.`);
     if (input.planHash !== session.plan.planHash) throw new Error("El stable plan cambió.");
     const runtime = this.runtime();
-    assertRuntime(runtime, input.connectedWallet);
+    assertRuntime(runtime, input.connectedWallet, this.policy);
     if (fingerprint(runtime) !== session.configFingerprint) throw new Error("La configuración cambió desde Build.");
     await this.assertExpectedState();
     if (await this.rpc.getGenesisHash() !== runtime.expectedGenesisHash) throw new Error("Genesis Mainnet cambió.");
@@ -431,11 +486,11 @@ export class PhantomFixedSupplyCoordinator {
   private async assertPreIssuanceOnChain(session: Session): Promise<void> {
     const mintAddress = new PublicKey(session.plan.mintAddress);
     const mint = await this.rpc.readMint(mintAddress);
-    assertMintSnapshot(mint.snapshot, { authority: session.plan.payer, supply: 0n });
+    assertMintSnapshot(mint.snapshot, { authority: session.plan.payer, supply: this.policy.currentSupplyBaseUnits });
     const ata = await this.rpc.readAta(new PublicKey(session.plan.destinationAta));
-    if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== session.plan.mintAddress || ata.owner !== session.plan.destinationOwner || ata.amount !== 0n) throw new Error("El ATA o su balance cambió antes de Send.");
+    if (!ata || ata.programOwner !== TOKEN_PROGRAM_ID.toBase58() || ata.mint !== session.plan.mintAddress || ata.owner !== session.plan.destinationOwner || ata.amount !== this.policy.currentSupplyBaseUnits) throw new Error("El ATA o su balance cambió antes de Send.");
     const accounts = await this.rpc.listMintAccounts(mintAddress);
-    if (accounts.length !== 1 || accounts[0]?.address !== session.plan.destinationAta || accounts[0].amount !== 0n) throw new Error("La distribución cambió antes de Send.");
+    if (accounts.length !== 1 || accounts[0]?.address !== session.plan.destinationAta || accounts[0].amount !== this.policy.currentSupplyBaseUnits) throw new Error("La distribución cambió antes de Send.");
   }
 
   private invalidate(session: Session): void {
@@ -460,6 +515,6 @@ export class PhantomFixedSupplyCoordinator {
 
   private async saveRecovery(session: Session, status: SupplyRecoveryRecord["status"]): Promise<void> {
     if (!session.fresh) throw new Error("No existe mensaje fresco para recovery.");
-    await this.recovery.save({ operation: "mint-fixed-supply", status, mintAddress: session.plan.mintAddress, ata: session.plan.destinationAta, amountBaseUnits: "1000000000000", messageHash: session.fresh.messageHash, planHash: session.plan.planHash, blockhash: session.fresh.blockhash, lastValidBlockHeight: session.fresh.lastValidBlockHeight, signature: session.signature ?? session.expectedSignature, updatedAt: this.now().toISOString() });
+    await this.recovery.save({ operation: this.policy.operation, status, mintAddress: session.plan.mintAddress, ata: session.plan.destinationAta, amountBaseUnits: this.policy.issuanceBaseUnits.toString(), messageHash: session.fresh.messageHash, planHash: session.plan.planHash, blockhash: session.fresh.blockhash, lastValidBlockHeight: session.fresh.lastValidBlockHeight, signature: session.signature ?? session.expectedSignature, updatedAt: this.now().toISOString() });
   }
 }

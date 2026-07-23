@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AVICOIN · Phantom Mainnet Final Declared Supply</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">AVICOIN · MAINNET · MINT-FINAL-SUPPLY ONLY</p>
+      <h1>Supply final declarado,<br><span>una sola emisión.</span></h1>
+      <p class="lede">Emite exclusivamente 99,999,000 AVI al ATA oficial para alcanzar exactamente 100,000,000 AVI. No acepta otra cantidad, no crea cuentas y no modifica metadata ni autoridades.</p>
+    </header>
+    <section class="wallet-card">
+      <div><p class="label">Wallet Phantom autorizada</p><code>EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq</code></div>
+      <button id="connect" type="button">Connect Phantom</button>
+      <p id="execution-gate" class="gate">Sin conexión. ALLOW_MAINNET no se modifica desde la UI.</p>
+      <p id="status" role="status" data-tone="neutral">No se ejecutó ninguna operación.</p>
+    </section>
+    <section>
+      <div class="section-heading"><div><p class="label">Flujo auditado</p><h2>99,999,000 AVI, un solo mintToChecked</h2></div><span class="badge">mint-final-supply only</span></div>
+      <div class="workflow">
+        <button id="build" type="button" disabled><b>01</b> Build stable plan</button>
+        <button id="review" type="button" disabled><b>02</b> Review stable plan</button>
+      </div>
+      <div class="confirmation-panel">
+        <label for="confirmation-token">Token exacto de confirmación</label>
+        <input id="confirmation-token" type="password" autocomplete="off" spellcheck="false" placeholder="CONFIRMO-MAINNET-EMITIR-SUPPLY-DEFINITIVO">
+        <label class="check"><input id="first-confirm" type="checkbox"> Confirmo Mainnet, mint y ATA exactos; supply y balance inicial son 1,000 AVI, la emisión exacta es 99,999,000 AVI y el resultado será 100,000,000 AVI.</label>
+        <button id="prepare" type="button" disabled><b>03</b> Prepare fresh transaction + simulate</button>
+        <p id="prepare-validity" class="gate">Todavía no existe blockhash final.</p>
+        <dl id="prepare-gate" class="plan"></dl>
+        <button id="request-signature" type="button" disabled><b>04</b> Request immediate signature</button>
+        <p id="signature-validity" class="gate">Firma bloqueada hasta simulación válida.</p>
+        <label class="check"><input id="send-confirm" type="checkbox" disabled> Confirmo el envío único del mismo mensaje firmado que emite exactamente 99,999,000 AVI al ATA oficial.</label>
+        <div class="workflow final-actions">
+          <button id="send" type="button" disabled><b>05</b> Send immediately</button>
+          <button id="verify" type="button" disabled><b>06</b> Verify finalized state</button>
+          <button id="cancel" type="button" disabled>Cancel session</button>
+        </div>
+      </div>
+    </section>
+    <section class="plan-section"><div class="section-heading"><div><p class="label">Plan estable</p><h2>Cantidad exacta, sin blockhash</h2></div></div><dl id="plan" class="plan"><div><dt>Estado</dt><dd>Ejecuta Build.</dd></div></dl></section>
+    <section class="plan-section"><div class="section-heading"><div><p class="label">Ventana efímera</p><h2>Mensaje exacto recién simulado</h2></div></div><dl id="fresh-transaction" class="plan"><div><dt>Estado</dt><dd>Disponible después de Prepare.</dd></div></dl></section>
+    <section class="blocked"><p class="label">Fuera de alcance</p><h2>Operaciones bloqueadas</h2><ul id="blocked-operations"></ul></section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

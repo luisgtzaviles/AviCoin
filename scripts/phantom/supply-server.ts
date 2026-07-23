@@ -5,15 +5,17 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { AccountLayout, getAccount, getMint, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { Connection, PublicKey, type VersionedMessage, type VersionedTransaction } from "@solana/web3.js";
-import { MAINNET_CONFIG, MAINNET_INITIAL_LAUNCH_BASE_UNITS, MAINNET_PRODUCTION_WALLET } from "../../config/index.js";
+import { MAINNET_CONFIG, MAINNET_PRODUCTION_WALLET } from "../../config/index.js";
 import { isDirectExecution, reportFailure } from "../lib/entrypoint.js";
 import { assertMainnetMetadata, MAINNET_METADATA_URI } from "../lib/mainnet-metadata.js";
 import { mintSnapshot } from "../lib/mainnet-token.js";
 import { AVICOIN_MAINNET_ATA, AVICOIN_MAINNET_MINT } from "../lib/phantom-ata-session.js";
 import type { PhantomRuntimeAuthorization } from "../lib/phantom-mint-session.js";
 import {
-  FIXED_SUPPLY_CONFIRMATION_TOKEN,
+  FINAL_SUPPLY_POLICY,
+  FIXED_SUPPLY_POLICY,
   PhantomFixedSupplyCoordinator,
+  type SupplyIssuancePolicy,
   type SupplyRecoveryRecord,
   type SupplyRecoveryStore,
   type SupplyRpc,
@@ -22,11 +24,10 @@ import {
 import { assertStateAllows, loadMainnetState, writeMainnetState } from "../lib/state.js";
 
 const METADATA_PDA = "4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2";
-const RECOVERY_PATH = resolve(".avicoin-phantom-sessions/mint-fixed-supply-recovery.json");
 const MAX_REQUEST_BYTES = 1_000_000;
 
 class FileSupplyRecoveryStore implements SupplyRecoveryStore {
-  constructor(private readonly path = RECOVERY_PATH) {}
+  constructor(private readonly path: string) {}
   async load(): Promise<SupplyRecoveryRecord | null> {
     try { return JSON.parse(await readFile(this.path, "utf8")) as SupplyRecoveryRecord; }
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
@@ -150,21 +151,23 @@ function assertOrigin(request: IncomingMessage, port: number): void {
   if (request.headers.origin !== `http://127.0.0.1:${port}` && request.headers.origin !== `http://localhost:${port}`) throw new Error("Origen local no autorizado.");
 }
 
-export async function startSupplyPhantomServer(options: { readonly port?: number; readonly environment?: NodeJS.ProcessEnv } = {}) {
+export async function startSupplyPhantomServer(options: { readonly port?: number; readonly environment?: NodeJS.ProcessEnv; readonly mode?: "initial" | "final" } = {}) {
   const environment = options.environment ?? process.env;
-  const port = options.port ?? Number(environment.AVICOIN_PHANTOM_PORT ?? "4177");
+  const policy: SupplyIssuancePolicy = options.mode === "final" ? FINAL_SUPPLY_POLICY : FIXED_SUPPLY_POLICY;
+  const port = options.port ?? Number(environment.AVICOIN_PHANTOM_PORT ?? (options.mode === "final" ? "4178" : "4177"));
   if (!Number.isInteger(port) || port < 1024 || port > 65_535) throw new Error("Puerto local inválido.");
   const runtime = () => supplyRuntimeAuthorization(environment);
   const connection = new Connection(runtime().rpcUrl, "confirmed");
   const rpc = new Web3SupplyRpc(connection);
-  const recovery = new FileSupplyRecoveryStore();
+  const recovery = new FileSupplyRecoveryStore(resolve(`.avicoin-phantom-sessions/${policy.operation}-recovery.json`));
   const assertExpectedState = async () => {
     const state = await loadMainnetState();
-    assertStateAllows(state, "mint-fixed-supply");
+    assertStateAllows(state, policy.operation);
     if (state.avi_mint !== AVICOIN_MAINNET_MINT || state.avi_ata !== AVICOIN_MAINNET_ATA || !state.ata_created) throw new Error("Mint o ATA local no coincide con el estado confirmado.");
     if (!state.metadata_created || state.metadata_pda !== METADATA_PDA) throw new Error("Metadata local no está confirmada.");
-    if (state.supply_minted || state.launch_mint_operations_completed !== 0) throw new Error("La emisión fija ya fue consumida.");
-    if (state.pool_created || state.position_opened || state.liquidity_added || state.swaps_tested || state.mint_authority_revoked) throw new Error("Estado posterior fuera del alcance mint-fixed-supply.");
+    if (policy.operation === "mint-fixed-supply" && (state.supply_minted || state.launch_mint_operations_completed !== 0)) throw new Error("La emisión fija ya fue consumida.");
+    if (policy.operation === "mint-final-supply" && (!state.supply_minted || state.launch_mint_operations_completed !== 1 || state.final_supply === true || state.permanent_max_supply !== null)) throw new Error("El estado local no permite la emisión final declarada.");
+    if (state.pool_created || state.position_opened || state.liquidity_added || state.swaps_tested || state.mint_authority_revoked) throw new Error(`Estado posterior fuera del alcance ${policy.operation}.`);
   };
   const assertMetadata = async () => {
     const pda = await assertMainnetMetadata(runtime().rpcUrl, AVICOIN_MAINNET_MINT, MAINNET_METADATA_URI);
@@ -172,14 +175,20 @@ export async function startSupplyPhantomServer(options: { readonly port?: number
   };
   const coordinator = new PhantomFixedSupplyCoordinator(rpc, runtime, recovery, assertExpectedState, assertMetadata, async () => {
     const state = await loadMainnetState();
-    if (state.supply_minted || state.launch_mint_operations_completed !== 0) throw new Error("El estado de emisión ya fue actualizado.");
-    await writeMainnetState({ ...state, supply_minted: true, launch_mint_operations_completed: 1 });
-  });
-  const bundleDirectory = await mkdtemp(join(tmpdir(), "avicoin-phantom-supply-ui-"));
+    if (policy.operation === "mint-fixed-supply") {
+      if (state.supply_minted || state.launch_mint_operations_completed !== 0) throw new Error("El estado de emisión ya fue actualizado.");
+      await writeMainnetState({ ...state, supply_minted: true, launch_mint_operations_completed: 1 });
+      return;
+    }
+    if (!state.supply_minted || state.launch_mint_operations_completed !== 1 || state.final_supply === true || state.permanent_max_supply !== null) throw new Error("El estado final ya fue actualizado o dejó de coincidir.");
+    await writeMainnetState({ ...state, final_supply: true });
+  }, undefined, policy);
+  const uiDirectory = policy.operation === "mint-final-supply" ? "tools/phantom-final-supply" : "tools/phantom-supply";
+  const bundleDirectory = await mkdtemp(join(tmpdir(), `avicoin-phantom-${policy.operation}-ui-`));
   const bundlePath = join(bundleDirectory, "app.js");
-  await bundle({ entryPoints: [resolve("tools/phantom-supply/app.js")], outfile: bundlePath, bundle: true, platform: "browser", format: "esm", target: ["es2022"], minify: false, sourcemap: false, logLevel: "silent" });
+  await bundle({ entryPoints: [resolve(`${uiDirectory}/app.js`)], outfile: bundlePath, bundle: true, platform: "browser", format: "esm", target: ["es2022"], minify: false, sourcemap: false, logLevel: "silent" });
   const assets = new Map([
-    ["/", { path: resolve("tools/phantom-supply/index.html"), type: "text/html; charset=utf-8" }],
+    ["/", { path: resolve(`${uiDirectory}/index.html`), type: "text/html; charset=utf-8" }],
     ["/styles.css", { path: resolve("tools/phantom/styles.css"), type: "text/css; charset=utf-8" }],
     ["/app.js", { path: bundlePath, type: "text/javascript; charset=utf-8" }],
   ]);
@@ -201,15 +210,20 @@ export async function startSupplyPhantomServer(options: { readonly port?: number
           productionWallet: auth.productionWallet,
           mint: AVICOIN_MAINNET_MINT,
           ata: AVICOIN_MAINNET_ATA,
-          amountAvi: "1000",
-          amountBaseUnits: MAINNET_INITIAL_LAUNCH_BASE_UNITS.toString(),
+          amountAvi: policy.issuanceAvi.toString(),
+          amountBaseUnits: policy.issuanceBaseUnits.toString(),
+          currentSupplyBaseUnits: policy.currentSupplyBaseUnits.toString(),
+          finalSupplyAvi: policy.finalSupplyAvi.toString(),
+          finalSupplyBaseUnits: policy.finalSupplyBaseUnits.toString(),
           selectedOperation: auth.operation ?? null,
-          executionEnabled: auth.allowMainnet && auth.operation === "mint-fixed-supply" && auth.confirmationToken === FIXED_SUPPLY_CONFIRMATION_TOKEN,
+          executionEnabled: auth.allowMainnet && auth.operation === policy.operation && auth.confirmationToken === policy.confirmationToken,
           recovery: await recovery.load(),
           preflight: {
             supplyZero: mint.snapshot.supply === 0n && !state.supply_minted && state.launch_mint_operations_completed === 0,
             ataZero: ata?.amount === 0n,
-            onlyOfficialAta: accounts.length === 1 && accounts[0]?.address === AVICOIN_MAINNET_ATA && accounts[0].amount === 0n,
+            currentSupplyExact: mint.snapshot.supply === policy.currentSupplyBaseUnits,
+            ataBalanceExact: ata?.amount === policy.currentSupplyBaseUnits,
+            onlyOfficialAta: accounts.length === 1 && accounts[0]?.address === AVICOIN_MAINNET_ATA && accounts[0].amount === policy.currentSupplyBaseUnits,
             mintInvariantsValid: mint.owner === TOKEN_PROGRAM_ID.toBase58() && mint.snapshot.decimals === 9 && mint.snapshot.mintAuthority === MAINNET_PRODUCTION_WALLET && mint.snapshot.freezeAuthority === null,
             metadataValid,
           },
@@ -291,6 +305,10 @@ export async function main(): Promise<void> {
   console.log("OPEN THIS URL MANUALLY IN YOUR NORMAL CHROME PROFILE");
   console.log(`AVICOIN Phantom fixed supply: http://127.0.0.1:${instance.port}/`);
   console.log("No se solicita firma al iniciar. Única operación: mint-fixed-supply de exactamente 1,000 AVI.");
+}
+
+export async function startFinalSupplyPhantomServer(options: { readonly port?: number; readonly environment?: NodeJS.ProcessEnv } = {}) {
+  return startSupplyPhantomServer({ ...options, mode: "final" });
 }
 
 if (isDirectExecution(import.meta.url)) void main().catch(reportFailure);

@@ -7,6 +7,7 @@
   "launch_mint_operations_allowed": 1,
   "launch_mint_operations_completed": 1,
   "permanent_max_supply": null,
+  "final_supply": true,
   "mint_authority_policy": "retained_temporarily",
   "avi_mint": "GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC",
   "metadata_pda": "4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2",

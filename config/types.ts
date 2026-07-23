@@ -35,6 +35,7 @@ export type MainnetOperation =
   | "create-metadata"
   | "create-ata"
   | "mint-fixed-supply"
+  | "mint-final-supply"
   | "revoke-mint-authority"
   | "create-pool"
   | "open-position"
