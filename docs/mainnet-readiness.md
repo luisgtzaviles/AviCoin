@@ -1,20 +1,21 @@
 # AVICOIN Mainnet Readiness
 
-Estado: **mint, metadata y ATA Mainnet creados y verificados; supply y recursos Orca pendientes**.
+Estado: **mint, metadata, ATA y supply inicial Mainnet creados y verificados; recursos Orca pendientes**.
 
 ## Preparado y validado
 
 - Wallet pública Phantom de producción: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq`. No se registran seed, clave privada, export ni ruta de keypair.
 - Mainnet separado de devnet, genesis exacto `5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d`, RPC Mainnet, USDC oficial y programas oficiales fijados.
 - Metadata pública: `https://avicoin.avicell.com.mx/metadata-mainnet.json`, SHA-256 actual `f3d87b8c254b190218a2a8b94630b8ef764555b18ce72ba657f1b2677daffb90`.
-- Supply inicial: `1,000 AVI` / `1,000,000,000,000` unidades base; una sola emisión autorizada cuando supply sea 0.
+- Supply inicial: `1,000 AVI` / `1,000,000,000,000` unidades base; la única emisión autorizada fue finalizada y el contador quedó consumido.
 - Supply máximo permanente: `null` / undecided. No existe autorización para emisiones posteriores en la etapa actual.
 - Mint authority: `retained_temporarily`; freeze authority: `none` permanentemente.
 - El gate del pool admite `retained_temporarily` y la política futura `revoked`, pero exige invariantes on-chain exactas y rechaza cualquier política desconocida.
-- Mint definitivo: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`, creado en slot `434607364` y releído en `finalized` con owner SPL Token Program, 9 decimales, supply 0, mint authority de producción y freeze authority `none`.
+- Mint definitivo: `GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`, creado en slot `434607364` y releído después de la emisión en `finalized` con owner SPL Token Program, 9 decimales, supply `1,000 AVI`, mint authority de producción y freeze authority `none`.
 - Metadata PDA `4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`, creada en slot `434620903` y releída en `finalized` con owner Metaplex, identidad, URI, seller fee, mutabilidad y update authority exactos.
-- ATA oficial `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`, creada en slot `434624296` y releída en `finalized` con owner SPL Token Program, wallet de producción, mint AVICOIN y balance `0 AVI`.
-- `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones Mainnet: 3; firmas Phantom: 3. `create-mint`, `create-metadata` y `create-ata` no deben repetirse.
+- ATA oficial `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`, creada en slot `434624296` y releída después de la emisión en `finalized` con owner SPL Token Program, wallet de producción, mint AVICOIN y balance `1,000 AVI`.
+- Emisión fija finalizada en slot `434632215`: exactamente una instrucción `mintToChecked` de `1,000,000,000,000` unidades base al ATA oficial; no existe otra cuenta del mint con balance.
+- `ALLOW_MAINNET=false`; sin operación persistente autorizada; transacciones Mainnet: 4; firmas Phantom: 4. `create-mint`, `create-metadata`, `create-ata` y `mint-fixed-supply` no deben repetirse.
 - Servidor limitado a `127.0.0.1`, UI autocontenida sin CDN, CSP local y proveedor oficial `window.phantom.solana`.
 - Flujo separado `Build stable plan → Review → confirmación → Prepare fresh transaction / Simulate → Request signature → Send → Verify finalized state`, con token efímero y dos confirmaciones explícitas.
 - Keypair del mint generado sólo en memoria; únicamente su dirección pública y hashes pueden conservarse para resolver un estado ambiguo.
@@ -24,10 +25,10 @@ Estado: **mint, metadata y ATA Mainnet creados y verificados; supply y recursos 
 
 ## Preflight y costo observado
 
-El preflight SDK del 2026-07-22 releyó `0.339564219 SOL`, `10.89983 USDC` oficial y el genesis exacto. Create-mint consumió `0.001471600 SOL`. Create-metadata consumió `0.015120800 SOL`: `0.015115600 SOL` para la cuenta y `0.000005200 SOL` de fee. Create-ata consumió después `0.002044380 SOL`: `0.002039280 SOL` para la cuenta y `0.000005100 SOL` de fee. El saldo posterior fue `0.320927439 SOL`. Los costos de operaciones posteriores deben recotizarse antes de cualquier autorización independiente.
+El preflight SDK del 2026-07-22 releyó `0.339564219 SOL`, `10.89983 USDC` oficial y el genesis exacto. Create-mint consumió `0.001471600 SOL`. Create-metadata consumió `0.015120800 SOL`: `0.015115600 SOL` para la cuenta y `0.000005200 SOL` de fee. Create-ata consumió después `0.002044380 SOL`: `0.002039280 SOL` para la cuenta y `0.000005100 SOL` de fee. Mint-fixed-supply consumió sólo su fee de `0.000005050 SOL`: el saldo pasó de `0.320927439 SOL` a `0.320922389 SOL`. Los costos de operaciones posteriores deben recotizarse antes de cualquier autorización independiente.
 
 ## Alcance operativo
 
-Las operaciones `create-mint`, `create-metadata` y `create-ata` concluyeron y no deben ejecutarse nuevamente. `mint-fixed-supply`, pool, posición, liquidez y swaps continúan bloqueados y requieren autorizaciones futuras separadas. La configuración persistente continúa en `ALLOW_MAINNET=false`.
+Las operaciones `create-mint`, `create-metadata`, `create-ata` y la única `mint-fixed-supply` concluyeron y no deben ejecutarse nuevamente. La emisión adicional continúa bloqueada. Pool, posición, liquidez y swaps requieren autorizaciones futuras separadas. La configuración persistente continúa en `ALLOW_MAINNET=false`.
 
-Las verificaciones finales confirmaron mint, metadata y ATA exactos sin errores. AVI emitidos, balance del ATA, pool, posición y swaps permanecen en cero. La evidencia completa está en [mainnet-token.md](mainnet-token.md) y [mainnet-metadata.md](mainnet-metadata.md).
+Las verificaciones finales confirmaron mint, metadata y ATA exactos sin errores, con supply y balance del ATA en `1,000 AVI`. Pool, posición y swaps permanecen inexistentes. La evidencia completa está en [mainnet-token.md](mainnet-token.md) y [mainnet-metadata.md](mainnet-metadata.md).

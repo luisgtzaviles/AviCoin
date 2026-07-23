@@ -14,6 +14,7 @@ const entrypoints = [
   "../scripts/phantom/server.js",
   "../scripts/phantom/metadata-server.js",
   "../scripts/phantom/ata-server.js",
+  "../scripts/phantom/supply-server.js",
   "../scripts/phantom/diagnostic-server.js",
   "../scripts/orca/detect-pool.js",
   "../scripts/orca/quote-pool.js",
