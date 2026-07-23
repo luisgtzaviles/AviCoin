@@ -1,7 +1,9 @@
 {
   "name": "AVICOIN",
   "symbol": "AVI",
-  "description": "AVICOIN es un proyecto educativo en Solana. Esta metadata prepara un posible token Mainnet todavía no creado y no constituye una inversión ni una promesa de precio, liquidez o rendimiento.",
+  "mint": "GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC",
+  "metadata_pda": "4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2",
+  "description": "AVICOIN es un proyecto educativo en Solana Mainnet. Esta metadata identifica el mint oficial y no constituye una inversión ni una promesa de precio, liquidez o rendimiento.",
   "image": "https://avicoin.avicell.com.mx/logo.png",
   "seller_fee_basis_points": 0,
   "external_url": "https://avicoin.avicell.com.mx/",
@@ -9,7 +11,7 @@
     { "trait_type": "Network", "value": "Solana Mainnet-beta" },
     { "trait_type": "Purpose", "value": "Educational" },
     { "trait_type": "Decimals", "value": "9" },
-    { "trait_type": "Mint status", "value": "Not created" }
+    { "trait_type": "Mint status", "value": "Created" }
   ],
   "properties": {
     "category": "image",

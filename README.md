@@ -112,7 +112,7 @@ La evidencia, slots, firmas y comandos de verificación están en [docs/devnet-t
 
 ### Mainnet-beta
 
-Estado: **mint Mainnet creado y verificado / supply 0 / lanzamiento incompleto**.
+Estado: **mint y metadata Mainnet creados y verificados / supply 0 / lanzamiento incompleto**.
 
 - Wallet de producción Phantom: `EYCMAVd2nSNDZkt3XTBzjKRY7QYFqb6k8oE1DSG5eFkq` (sólo public key).
 - Mint address: [`GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`](https://explorer.solana.com/address/GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC).
@@ -123,7 +123,9 @@ Estado: **mint Mainnet creado y verificado / supply 0 / lanzamiento incompleto**
 - Freeze authority: ninguna.
 - Mint authority: retenida temporalmente por la wallet de producción; esto no garantiza supply fijo ni autoriza nuevas emisiones.
 - Pool AVI/USDC: no creado; diseño educativo con liquidez extremadamente baja.
-- Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, publicada y verificada por SHA-256. La metadata on-chain continúa pendiente.
-- Estado de seguridad: `create-mint` finalizado una vez; `ALLOW_MAINNET=false`; firmas Phantom: 1; transacciones Mainnet: 1. No se autoriza repetir create-mint.
+- Metadata on-chain: [`4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`](https://explorer.solana.com/address/4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2), creada con nombre `AVICOIN`, símbolo `AVI`, seller fee 0, URI pública exacta y update authority de producción.
+- Transacción create-metadata: [`38YgPFw4a3Z4m5LQdJAbLvjCjhU34yT9ksUsgWf1jXBQdXjwRwwz8ANx6KB4zpEi8U8W3ycDMgWb6GDNErMEcvJz`](https://explorer.solana.com/tx/38YgPFw4a3Z4m5LQdJAbLvjCjhU34yT9ksUsgWf1jXBQdXjwRwwz8ANx6KB4zpEi8U8W3ycDMgWb6GDNErMEcvJz).
+- Metadata pública: <https://avicoin.avicell.com.mx/metadata-mainnet.json>, actualizada al estado creado y verificada con SHA-256 `f3d87b8c254b190218a2a8b94630b8ef764555b18ce72ba657f1b2677daffb90`.
+- Estado de seguridad: `create-mint` y `create-metadata` finalizados una vez; `ALLOW_MAINNET=false`; firmas Phantom: 2; transacciones Mainnet: 2. No se autoriza repetir ninguna de esas operaciones.
 
-La evidencia exacta está en [mainnet-token](docs/mainnet-token.md). El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).
+La evidencia exacta está en [mainnet-token](docs/mainnet-token.md) y [mainnet-metadata](docs/mainnet-metadata.md). El procedimiento y sus aprobaciones separadas están en [mainnet-runbook](docs/mainnet-runbook.md). Véanse también [readiness](docs/mainnet-readiness.md), [política de wallet](docs/mainnet-wallet-policy.md), [diseño del pool](docs/mainnet-pool-design.md) y [riesgos](docs/mainnet-risk-disclosure.md).

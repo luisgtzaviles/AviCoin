@@ -3,13 +3,16 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 import { validatePublishedMainnetMetadata } from "../scripts/lib/mainnet-metadata.js";
 
-describe("metadata pública Mainnet preparada", () => {
-  it("es JSON válido con identidad, fee cero y estado pendiente", async () => {
+describe("metadata pública Mainnet", () => {
+  it("es JSON válido con identidad, fee cero y estado creado", async () => {
     const metadata = JSON.parse(await readFile("site/metadata-mainnet.json", "utf8")) as Record<string, unknown>;
     assert.equal(metadata.name, "AVICOIN");
     assert.equal(metadata.symbol, "AVI");
+    assert.equal(metadata.mint, "GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC");
+    assert.equal(metadata.metadata_pda, "4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2");
     assert.equal(metadata.seller_fee_basis_points, 0);
-    assert.match(JSON.stringify(metadata), /Not created/);
+    assert.match(JSON.stringify(metadata), /Created/);
+    assert.doesNotMatch(JSON.stringify(metadata), /Not created/);
   });
 
   it("no expone secretos, rutas privadas ni RPC", async () => {

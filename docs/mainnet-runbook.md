@@ -1,8 +1,10 @@
 # Runbook de lanzamiento Mainnet AVICOIN
 
-Estado: `create-mint` fue ejecutado una sola vez y finalizó correctamente el 2026-07-22. La configuración persistente conserva `ALLOW_MAINNET=false`; **no repetir create-mint**.
+Estado: `create-mint` y `create-metadata` fueron ejecutados una sola vez y finalizaron correctamente. La configuración persistente conserva `ALLOW_MAINNET=false`; **no repetir ninguna de esas operaciones**.
 
 Mint definitivo: [`GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC`](https://explorer.solana.com/address/GVRNeaBDvKDJ78Rmd29fPdKyCjraSRABiYf2h8LuJytC). Evidencia: [mainnet-token.md](mainnet-token.md).
+
+Metadata definitiva: [`4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`](https://explorer.solana.com/address/4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2). Evidencia: [mainnet-metadata.md](mainnet-metadata.md).
 
 ## Diagnóstico local de conexión Phantom
 
@@ -56,4 +58,6 @@ Después de que `Send` fija `send_locked`, o si el resultado es `sent` o `ambigu
 
 No existe reintento automático. La máquina de estados es `plan_built → plan_reviewed → fresh_message_prepared → simulated → signature_requested → signed → send_locked → sent → finalized`; `ambiguous` y `cancelled` son salidas explícitas. El primer intento de envío fija un bloqueo en memoria antes de llamar al RPC. Una ficha de recuperación local contiene sólo datos públicos —dirección esperada, firma, blockhash y hashes— y está ignorada por Git; nunca contiene keypair o transacción serializada. Ante timeout se consulta la firma y esa dirección, no se genera un mint sustituto.
 
-`create-metadata`, ATA, emisión, revocación, pool, posición, liquidez y swaps permanecen bloqueados. La retención de mint authority no garantiza supply fijo ni habilita emisiones adicionales.
+La sesión posterior de `create-metadata` reutilizó la misma máquina de estados sin material custodial. El mensaje final incluyó un presupuesto determinístico de cómputo, fue simulado y firmado exactamente una vez, enviado con `maxRetries: 0` y verificado en `finalized`. La metadata pública se actualizó después, sin cambiar su URL.
+
+ATA, emisión, revocación, pool, posición, liquidez y swaps permanecen bloqueados. La retención de mint authority no garantiza supply fijo ni habilita emisiones adicionales.

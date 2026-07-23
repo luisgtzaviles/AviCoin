@@ -7,7 +7,7 @@ import { PublicKey, TransactionInstruction } from "@solana/web3.js";
 import { MAINNET_PRODUCTION_WALLET } from "../../config/index.js";
 
 export const MAINNET_METADATA_URI = "https://avicoin.avicell.com.mx/metadata-mainnet.json";
-export const MAINNET_METADATA_SHA256 = "80b7c815d346a66ac8572df04b06d1781b79c42da4631ced2cc94f0983d962f2";
+export const MAINNET_METADATA_SHA256 = "f3d87b8c254b190218a2a8b94630b8ef764555b18ce72ba657f1b2677daffb90";
 export const MAINNET_LOGO_SHA256 = "7d90dee3d23218a5ab84cf5f465175e3e2ea11ed3959f9acd90100abc4406a54";
 
 export interface MetadataSnapshot {

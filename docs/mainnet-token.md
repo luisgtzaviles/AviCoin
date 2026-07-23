@@ -1,6 +1,6 @@
 # AVICOIN Mainnet Mint
 
-Estado: **create-mint finalized; supply 0; operaciones posteriores no ejecutadas**.
+Estado: **create-mint finalized; metadata on-chain creada; supply 0; ATA y operaciones de emisión no ejecutadas**.
 
 ## Identidad y transacción
 
@@ -39,12 +39,12 @@ Estado: **create-mint finalized; supply 0; operaciones posteriores no ejecutadas
 
 ## Alcance preservado
 
-- Metadata on-chain: no creada. PDA derivada `4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`, cuenta inexistente al verificar.
+- Metadata on-chain: creada y verificada en la PDA `4jJmQbSYi3k1iunsbC6qcJM477T8apTw1SoyY36j1Qp2`. Véase [mainnet-metadata.md](mainnet-metadata.md).
 - ATA AVI de producción: no creada. Dirección derivada `H2qdPNJH668Jx85Moed7pLU1AyApAdnvNiVvpRdyrgGE`, cuenta inexistente al verificar.
 - AVI emitidos: 0.
 - Mint authority revocada: no.
 - Pool, posición, liquidez y swaps: no creados ni ejecutados.
-- Firmas Phantom: 1.
-- Transacciones Mainnet: 1.
+- Firmas Phantom acumuladas: 2 (`create-mint` y `create-metadata`).
+- Transacciones Mainnet acumuladas: 2.
 
-El servidor loopback fue detenido después de `finalized`; el keypair del mint existió sólo en memoria del proceso y no fue persistido. El recovery público finalizado fue eliminado durante el cierre. Esta evidencia no autoriza metadata, emisión ni ninguna operación posterior.
+El servidor loopback fue detenido después de `finalized`; el keypair del mint existió sólo en memoria del proceso y no fue persistido. Los recovery públicos finalizados fueron eliminados durante cada cierre. Esta evidencia no autoriza emisión ni ninguna operación posterior.
